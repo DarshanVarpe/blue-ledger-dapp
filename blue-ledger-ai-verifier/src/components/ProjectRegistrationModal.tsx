@@ -23,7 +23,6 @@ type RegistrationStep = "details" | "upload";
 
 export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: ProjectRegistrationModalProps) {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("details");
-  // ✅ ADDED: lat and lng to the form state
   const [formData, setFormData] = useState({ name: "", description: "", location: "", lat: "", lng: "" });
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -48,17 +47,22 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     const toastId = `reg-${Date.now()}`;
     toast.loading("Step 1/3: Uploading baseline image...", { id: toastId });
     try {
+      // ✅ FIX: Use the full, absolute URL for the Pinata API
+      const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
+
       const imageFormData = new FormData();
       imageFormData.append("file", uploadedFiles[0]);
-      // This endpoint seems custom. Ensure your backend/proxy handles it.
-      // A direct Pinata call is shown in other components.
-      const imageRes = await axios.post("/pinata/pinning/pinFileToIPFS", imageFormData, {
-        headers: { 'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, "Content-Type": "multipart/form-data" },
+      
+      const imageRes = await axios.post(pinataUrl, imageFormData, {
+        headers: { 
+          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
+          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, 
+          "Content-Type": "multipart/form-data" 
+        },
       });
       const imageIpfsHash = imageRes.data.IpfsHash;
       toast.loading("Step 2/3: Uploading metadata...", { id: toastId });
 
-      // ✅ ADDED: coordinates to the metadata object
       const metadata = { 
         name: formData.name, 
         description: formData.description, 
@@ -72,8 +76,13 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       const metadataFile = new File([metadataBlob], "metadata.json");
       const metadataFormData = new FormData();
       metadataFormData.append("file", metadataFile);
-      const metadataRes = await axios.post("/pinata/pinning/pinFileToIPFS", metadataFormData, {
-        headers: { 'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, "Content-Type": "multipart/form-data" },
+      
+      const metadataRes = await axios.post(pinataUrl, metadataFormData, {
+         headers: { 
+          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
+          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, 
+          "Content-Type": "multipart/form-data" 
+        },
       });
       const metadataIpfsHash = metadataRes.data.IpfsHash;
       toast.loading("Step 3/3: Awaiting wallet confirmation...", { id: toastId });
@@ -99,7 +108,6 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     if (isConfirmed) {
       toast.success("Project Registered Successfully!", { id: toastId });
       onSuccess?.(); 
-      // ✅ ADDED: Reset lat and lng fields
       setFormData({ name: "", description: "", location: "", lat: "", lng: "" });
       setUploadedFiles([]);
       setCurrentStep("details");
@@ -122,7 +130,6 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
   };
 
   const isStepValid = () => {
-    // ✅ ADDED: Check for lat and lng in validation
     if (currentStep === "details") return formData.name && formData.description && formData.location && formData.lat && formData.lng;
     if (currentStep === "upload") return uploadedFiles.length > 0;
     return false;
@@ -146,7 +153,6 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
           <div className="text-sm font-medium">Initial Data</div>
         </div>
         {currentStep === "details" && ( <div className="space-y-6"> <Card><CardContent className="space-y-4 pt-6"> <div><Label htmlFor="project-name">Project Name *</Label><Input id="project-name" placeholder="e.g., Sundarbans Mangrove Restoration" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} className="mt-2" /></div> <div><Label htmlFor="project-description">Description *</Label><Textarea id="project-description" placeholder="Describe your project goals..." value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} className="mt-2 min-h-[100px]" /></div> <div><Label htmlFor="project-location">Location *</Label><div className="relative mt-2"><MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input id="project-location" placeholder="e.g., West Bengal, India" value={formData.location} onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))} className="pl-10" /></div></div>
-        {/* ✅ ADDED: Latitude and Longitude input fields */}
         <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="project-lat">Latitude *</Label>
