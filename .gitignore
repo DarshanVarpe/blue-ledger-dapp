@@ -1,0 +1,58 @@
+# =============================================================================
+# GENERAL - IDE, System Files, and Logs
+# =============================================================================
+# macOS, Windows, and Linux system files
+.DS_Store
+Thumbs.db
+
+# IDE directories
+.vscode/
+.idea/
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+# =============================================================================
+# SECURITY - Environment Variables (Crucial!)
+# =============================================================================
+# This single rule ignores all .env files in any folder (root, frontend, contracts)
+**/.env
+**/.env.local
+**/.env.*.local
+
+
+# =============================================================================
+# FRONTEND (blue-ledger-ai-verifier)
+# =============================================================================
+# Dependency directory
+blue-ledger-ai-verifier/node_modules/
+
+# Vite build output
+blue-ledger-ai-verifier/dist/
+blue-ledger-ai-verifier/dist-ssr/
+
+
+# =============================================================================
+# CONTRACTS (Foundry)
+# =============================================================================
+# Dependency directory
+contracts/lib/
+
+# Foundry build artifacts
+contracts/cache/
+contracts/out/
+
+# Foundry lock file
+contracts/foundry.lock
+
+# Foundry broadcast logs (ignores local testnet broadcasts but keeps deployment ones)
+!contracts/broadcast/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/

@@ -1,0 +1,156 @@
+@import "leaflet/dist/leaflet.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* In src/index.css */
+
+
+
+/* ... the rest of your CSS */
+
+/* Blue Ledger Design System - Marine-inspired color palette */
+
+@layer base {
+  :root {
+    /* Base colors - Sandy beige backgrounds */
+    --background: 45 20% 97%;
+    --foreground: 200 50% 12%;
+
+    /* Card colors - Clean whites with ocean undertones */
+    --card: 0 0% 100%;
+    --card-foreground: 200 50% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 50% 12%;
+
+    /* Primary - Deep ocean blue */
+    --primary: 200 85% 15%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 200 75% 35%;
+
+    /* Secondary - Lighter ocean blue */
+    --secondary: 200 25% 92%;
+    --secondary-foreground: 200 85% 15%;
+
+    /* Muted - Sandy beige tones */
+    --muted: 40 15% 94%;
+    --muted-foreground: 200 25% 45%;
+
+    /* Accent - Seafoam green */
+    --accent: 165 60% 85%;
+    --accent-foreground: 165 80% 20%;
+    --accent-strong: 165 80% 20%;
+
+    /* Success - Ocean green */
+    --success: 170 70% 35%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning - Coral orange */
+    --warning: 25 95% 60%;
+    --warning-foreground: 25 90% 15%;
+
+    /* Destructive - Deep coral */
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders and inputs - Ocean-inspired */
+    --border: 200 20% 88%;
+    --input: 200 20% 88%;
+    --ring: 200 85% 15%;
+
+    /* Ocean gradients */
+    --gradient-ocean: linear-gradient(135deg, hsl(200 85% 15%), hsl(200 75% 35%));
+    --gradient-seafoam: linear-gradient(135deg, hsl(165 60% 85%), hsl(165 80% 20%));
+    --gradient-depth: linear-gradient(180deg, hsl(200 85% 15%), hsl(200 90% 8%));
+    --gradient-surface: linear-gradient(180deg, hsl(45 20% 97%), hsl(200 25% 92%));
+
+    /* Shadows with ocean blue tint */
+    --shadow-ocean: 0 10px 30px -10px hsl(200 85% 15% / 0.3);
+    --shadow-gentle: 0 4px 20px -4px hsl(200 50% 30% / 0.15);
+    --shadow-card: 0 2px 10px -2px hsl(200 30% 40% / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-gentle: all 0.2s ease-out;
+
+    --radius: 0.5rem;
+
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 200 50% 26.1%;
+    --sidebar-primary: 200 85% 15%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 200 25% 95.9%;
+    --sidebar-accent-foreground: 200 85% 15%;
+    --sidebar-border: 200 20% 88%;
+    --sidebar-ring: 200 85% 15%;
+  }
+
+  .dark {
+    /* Base colors - Deep ocean theme for dark mode */
+    --background: 200 90% 8%;
+    --foreground: 45 20% 95%;
+
+    /* Card colors */
+    --card: 200 85% 10%;
+    --card-foreground: 45 20% 95%;
+
+    --popover: 200 85% 10%;
+    --popover-foreground: 45 20% 95%;
+
+    /* Primary - Lighter ocean blue for dark mode */
+    --primary: 200 75% 75%;
+    --primary-foreground: 200 90% 8%;
+    --primary-glow: 200 85% 85%;
+
+    /* Secondary - Dark ocean tones */
+    --secondary: 200 50% 15%;
+    --secondary-foreground: 45 20% 95%;
+
+    /* Muted - Dark sandy tones */
+    --muted: 200 40% 12%;
+    --muted-foreground: 200 15% 65%;
+
+    /* Accent - Dark seafoam */
+    --accent: 165 40% 15%;
+    --accent-foreground: 165 60% 85%;
+    --accent-strong: 165 60% 75%;
+
+    /* Success - Dark ocean green */
+    --success: 170 60% 45%;
+    --success-foreground: 0 0% 98%;
+
+    /* Warning - Dark coral */
+    --warning: 25 80% 55%;
+    --warning-foreground: 25 90% 15%;
+
+    /* Destructive - Dark coral red */
+    --destructive: 0 60% 40%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders and inputs */
+    --border: 200 40% 18%;
+    --input: 200 40% 18%;
+    --ring: 200 75% 75%;
+
+    /* Dark mode sidebar */
+    --sidebar-background: 200 90% 8%;
+    --sidebar-foreground: 45 20% 95%;
+    --sidebar-primary: 200 75% 75%;
+    --sidebar-primary-foreground: 200 90% 8%;
+    --sidebar-accent: 200 50% 15%;
+    --sidebar-accent-foreground: 45 20% 95%;
+    --sidebar-border: 200 40% 18%;
+    --sidebar-ring: 200 75% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

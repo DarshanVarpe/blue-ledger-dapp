@@ -1,0 +1,1 @@
+export const blueLedgerAddress = "0xd52872F6E43cA8D075b5fe6900c65041AEc1440D";
