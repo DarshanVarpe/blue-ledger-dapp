@@ -39,7 +39,11 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
         try {
             const formData = new FormData();
             formData.append("file", selectedFile);
-            const res = await axios.post("/pinata/pinning/pinFileToIPFS", formData, {
+            
+            // ✅ FIX: Use the full, absolute URL for the Pinata API
+            const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
+
+            const res = await axios.post(pinataUrl, formData, {
                 headers: {
                     'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY,
                     'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY,
