@@ -1,28 +1,8 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }
-```
-
-* `"source": "/(.*)"`: This is a wildcard that means "match any path that a user tries to access."
-* `"destination": "/"`: This tells Vercel, "Instead of looking for a file at that path, just serve the main `index.html` file from the root."
-
-#### Step 3: Commit and Push the New Configuration
-
-Now, you need to add this new file to your Git repository and push it so Vercel can see it. Run these commands from your **`CarbonCredit` root folder**.
-
-1.  **Stage the new file:**
-    ```bash
-    git add vercel.json
-    ```
-
-2.  **Commit the change:**
-    ```bash
-    git commit -m "feat: add vercel.json for SPA routing"
-    ```
-
-3.  **Push to your `main` branch:**
-    ```bash
-    git push origin main
-    
