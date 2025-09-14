@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom"
-import { BarChart3, Home, FileText, Shield, Globe } from "lucide-react"
+import { BarChart3, Home, FileText, Shield, Globe , ShoppingCart } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +21,7 @@ const navigationItems = [
 const adminItems = [
   { title: "Admin Dashboard", url: "/admin", icon: Shield },
   { title: "Public Registry", url: "/public", icon: Globe },
+  { title: "Trading Platform", url: "/trading", icon: ShoppingCart },
 ]
 
 export function AppSidebar() {

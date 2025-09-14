@@ -20,6 +20,7 @@ interface ProjectRegistrationModalProps {
 }
 
 type RegistrationStep = "details" | "upload";
+const TOAST_ID = "project-registration-toast";
 
 export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: ProjectRegistrationModalProps) {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("details");
@@ -36,20 +37,32 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     query: { enabled: isConnected && !!userAddress },
   });
 
+  // ✅ FIX: Removed the unsupported onSuccess and onError callbacks from this hook.
+  // The logic is correctly handled by the useEffect hook below.
   const { data: hash, writeContract, isPending, error, reset } = useWriteContract();
   
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (isUploading) {
+      toast.loading("Step 1/3: Uploading files to IPFS...", { id: TOAST_ID });
+    } else if (isPending) {
+      toast.loading("Step 2/3: Awaiting wallet confirmation...", { id: TOAST_ID });
+    } else if (isConfirming) {
+      toast.loading("Step 3/3: Processing on-chain...", { id: TOAST_ID });
+    }
+  }, [isUploading, isPending, isConfirming]);
+
+
   const handleSubmit = async () => {
     if (!isStepValid()) {
       toast.error("Please complete all required fields and upload a file.");
       return;
     }
     setIsUploading(true);
-    const toastId = `reg-${Date.now()}`;
-    toast.loading("Step 1/3: Uploading baseline image...", { id: toastId });
+    
     try {
-      // ✅ FIX: Use the full, absolute URL for the Pinata API
       const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
-
       const imageFormData = new FormData();
       imageFormData.append("file", uploadedFiles[0]);
       
@@ -57,21 +70,13 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
         headers: { 
           'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
           'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, 
-          "Content-Type": "multipart/form-data" 
         },
       });
       const imageIpfsHash = imageRes.data.IpfsHash;
-      toast.loading("Step 2/3: Uploading metadata...", { id: toastId });
 
-      const metadata = { 
-        name: formData.name, 
-        description: formData.description, 
-        image: imageIpfsHash,
-        coordinates: {
-          lat: parseFloat(formData.lat),
-          lng: parseFloat(formData.lng)
-        }
-      };
+      setIsUploading(false);
+
+      const metadata = { name: formData.name, description: formData.description, image: imageIpfsHash, coordinates: { lat: parseFloat(formData.lat), lng: parseFloat(formData.lng) } };
       const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
       const metadataFile = new File([metadataBlob], "metadata.json");
       const metadataFormData = new FormData();
@@ -80,12 +85,10 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       const metadataRes = await axios.post(pinataUrl, metadataFormData, {
          headers: { 
           'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
-          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, 
-          "Content-Type": "multipart/form-data" 
+          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY,
         },
       });
       const metadataIpfsHash = metadataRes.data.IpfsHash;
-      toast.loading("Step 3/3: Awaiting wallet confirmation...", { id: toastId });
       
       writeContract({
         address: contractAddress,
@@ -95,31 +98,27 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       });
     } catch (err) {
       console.error("Project Registration Error:", err);
-      toast.error("Project Registration Failed", { id: toastId, description: "Please check console for details." });
+      toast.error("Project Registration Failed", { id: TOAST_ID, description: "Could not upload files to IPFS." });
       setIsUploading(false);
     }
   };
-  
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
-    const toastId = `reg-${hash}`;
-    if (isConfirming) toast.loading("Processing on-chain transaction...", { id: toastId });
     if (isConfirmed) {
-      toast.success("Project Registered Successfully!", { id: toastId });
+      toast.success("Project Registered Successfully!", { id: TOAST_ID });
       onSuccess?.(); 
       setFormData({ name: "", description: "", location: "", lat: "", lng: "" });
       setUploadedFiles([]);
       setCurrentStep("details");
       onOpenChange(false);
       reset();
-      setIsUploading(false);
     }
     if (error) {
-       toast.error("Transaction Failed", { id: toastId, description: error.message });
+       toast.error("Transaction Failed", { id: TOAST_ID, description: error.message });
        setIsUploading(false);
+       reset();
     }
-  }, [isConfirming, isConfirmed, error, onOpenChange, onSuccess, hash, reset]);
+  }, [isConfirmed, error, onOpenChange, onSuccess, reset]);
 
   const handleNext = () => currentStep === "details" && setCurrentStep("upload");
   const handleBack = () => currentStep === "upload" && setCurrentStep("details");

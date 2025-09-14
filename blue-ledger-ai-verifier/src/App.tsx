@@ -17,10 +17,10 @@ import ProjectDetails from "./pages/ProjectDetails";
 import PublicProjectDetail from "./pages/PublicProjectDetail"; // ✅ ADDED: Import the new page
 import NotFound from "./pages/NotFound";
 import VerificationPage from "./pages/VerificationPage";
+import TradingPlatform from "./pages/TradingPlatform"; // ✅ ADD THIS IMPORT
+import ProjectsPage from "./pages/ProjectsPage"; // ✅ ADD THIS IMPORT
+import ReportsPage from "./pages/ReportsPage";  
 
-// Placeholder pages for sidebar links
-const ProjectsPage = () => <div className="p-8"><h1>My Projects Page (Placeholder)</h1></div>;
-const ReportsPage = () => <div className="p-8"><h1>Reports Page (Placeholder)</h1></div>;
 
 function App() {
   useLenis(); // ✅ CORRECTED: Call hooks at the top level of the component body
@@ -54,6 +54,7 @@ function App() {
                   
                   {/* --- Public Routes --- */}
                   <Route path="/public" element={<PublicRegistry />} />
+                  <Route path="/trading" element={<TradingPlatform />} /> {/* ✅ ADD THIS ROUTE */}
                   <Route path="/registry/project/:projectId" element={<PublicProjectDetail />} /> {/* ✅ ADDED: Route for the public detail page */}
 
                   {/* --- Internal/NGO Route --- */}
