@@ -8,7 +8,12 @@ import heroOcean from "@/assets/hero-ocean.jpg";
 import { useReadContract, useReadContracts } from "wagmi";
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
 
+// ✅ Import CometCard here
+import { CometCard } from "@/components/ui/CometCard"; 
+
 // Define the TypeScript type to match your UPDATED Project struct in Solidity
+// This interface MUST include all properties that StatsCard or other consuming
+// components in this file might need, based on the contract's return type.
 type Project = {
   id: bigint;
   name: string;
@@ -18,14 +23,16 @@ type Project = {
   status: number;
   lastSubmittedAt: bigint;
   carbonSequestered: bigint;
+  // If 'creditsMinted' or other fields are part of the Project struct in Solidity
+  // and are directly returned by getAllProjects, they should be here too.
+  // For now, based on previous context, `carbonSequestered` is what's used
+  // in stats calculation and `creditsMinted` is calculated separately.
 };
 
 // Define the contract object for Wagmi
 const blueLedgerContract = {
   address: contractAddress as `0x${string}`,
-  // --- THIS IS THE FIX ---
-  // The `as const` assertion is now correctly added.
-  abi: contractAbi ,
+  abi: contractAbi,
 };
 
 export default function Dashboard() {
@@ -40,12 +47,13 @@ export default function Dashboard() {
 
   // Calculate all stats in one place for efficiency
   const stats = useMemo(() => {
-    const projects = (allProjects as Project[]) ?? [];
+    const projects = (allProjects as unknown as Project[]) ?? [];
 
     const totalProjects = projects.length;
     const pendingVerification = projects.filter(p => p.status === 1).length;
 
     const carbonSequestered = projects.reduce((acc, p) => {
+      // Ensure p.carbonSequestered is treated as bigint if it exists
       return acc + (p.carbonSequestered || 0n);
     }, 0n); 
 
@@ -58,7 +66,7 @@ export default function Dashboard() {
   
   // Logic for calculating "Credits Minted"
   const verifiedProjects = useMemo(() =>
-    ((allProjects as Project[]) ?? []).filter(p => p.status === 2),
+    (Array.from(allProjects ?? []) as Project[]).filter(p => p.status === 2),
   [allProjects]);
 
   const { data: creditsData } = useReadContracts({
@@ -80,10 +88,10 @@ export default function Dashboard() {
       }, 0n);
   }, [creditsData]);
 
-  const isLoading = isLoadingProjects;
+  const isLoading = isLoadingProjects; // Combined loading state from project fetching
 
   const handleSuccess = () => {
-    refetch(); 
+    refetch(); // Refetch projects after a successful registration
   }
 
   return (
@@ -115,30 +123,42 @@ export default function Dashboard() {
 
       <div className="p-8 -mt-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatsCard
-            title="Total Projects"
-            value={isLoading ? "..." : stats.totalProjects.toString()}
-            subtitle="Registered restoration sites"
-            icon={TreePine}
-          />
-          <StatsCard
-            title="Carbon Sequestered"
-            value={isLoading ? "..." : stats.carbonSequestered.toString()}
-            subtitle="Verified tonnes CO₂"
-            icon={BarChart3}
-          />
-          <StatsCard
-            title="Credits Minted"
-            value={isLoading ? "..." : totalCreditsMinted.toString()}
-            subtitle="Verified carbon credits"
-            icon={Award}
-          />
-          <StatsCard
-            title="Pending Verification"
-            value={isLoading ? "..." : stats.pendingVerification.toString()}
-            subtitle="Projects awaiting review"
-            icon={Clock}
-          />
+          {/* ✅ Wrap each StatsCard with CometCard */}
+          <CometCard className="transform-3d">
+            <StatsCard
+              title="Total Projects"
+              value={isLoading ? "..." : stats.totalProjects.toString()}
+              subtitle="Registered restoration sites"
+              icon={TreePine}
+            />
+          </CometCard>
+
+          <CometCard className="transform-3d">
+            <StatsCard
+              title="Carbon Sequestered"
+              value={isLoading ? "..." : stats.carbonSequestered.toString()}
+              subtitle="Verified tonnes CO₂"
+              icon={BarChart3}
+            />
+          </CometCard>
+
+          <CometCard className="transform-3d">
+            <StatsCard
+              title="Credits Minted"
+              value={isLoading ? "..." : totalCreditsMinted.toString()}
+              subtitle="Verified carbon credits"
+              icon={Award}
+            />
+          </CometCard>
+
+          <CometCard className="transform-3d">
+            <StatsCard
+              title="Pending Verification"
+              value={isLoading ? "..." : stats.pendingVerification.toString()}
+              subtitle="Projects awaiting review"
+              icon={Clock}
+            />
+          </CometCard>
         </div>
 
         <ProjectsTable />

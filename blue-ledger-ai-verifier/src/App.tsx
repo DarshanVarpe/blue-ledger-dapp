@@ -19,7 +19,8 @@ import NotFound from "./pages/NotFound";
 import VerificationPage from "./pages/VerificationPage";
 import TradingPlatform from "./pages/TradingPlatform"; // ✅ ADD THIS IMPORT
 import ProjectsPage from "./pages/ProjectsPage"; // ✅ ADD THIS IMPORT
-import ReportsPage from "./pages/ReportsPage";  
+import ReportsPage from "./pages/ReportsPage"; 
+
 
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
                   
                   {/* --- Public Routes --- */}
                   <Route path="/public" element={<PublicRegistry />} />
+                  
                   <Route path="/trading" element={<TradingPlatform />} /> {/* ✅ ADD THIS ROUTE */}
                   <Route path="/registry/project/:projectId" element={<PublicProjectDetail />} /> {/* ✅ ADDED: Route for the public detail page */}
 

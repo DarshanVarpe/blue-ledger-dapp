@@ -1,69 +1,153 @@
-// src/pages/PublicRegistry.tsx
+import { useState, useMemo, useEffect } from 'react';
 import { useReadContract } from 'wagmi';
+import { contractAddress, contractAbi } from "@/contracts/contractConfig";
+import { PublicProjectCard } from '@/components/PublicProjectCard';
 import { motion } from 'framer-motion';
-import { contractAddress, contractAbi } from '@/contracts/contractConfig';
-import { PublicProjectCard } from '@/components/PublicProjectCard'; // Import our new card
-import { Globe, Loader2 } from 'lucide-react';
-
-// Make sure your Project type here matches the one in the card
-type Project = {
+import { WorldMap } from '@/components/ui/WorldMap';
+import axios from 'axios';
+import { LoaderThree } from '@/components/ui/loader'; 
+// Define the core Project interface as it comes from the contract
+// This interface MUST include all properties that PublicProjectCard expects.
+interface Project {
   id: bigint;
   name: string;
   location: string;
   metadataHash: string;
-  creditsMinted: bigint;
-  // ... any other fields you need from the struct
-};
+  creditsMinted: bigint; 
+  status: number; // <--- ADDED THIS PROPERTY (CRITICAL FOR FILTERING)
+  // Add other Project fields as they exist in your contract if PublicProjectCard
+  // or other parts of your app might use them. E.g.:
+  // owner: `0x${string}`;
+  // lastSubmittedAt: bigint;
+  // carbonSequestered: bigint;
+  // rejectionReason: string;
+  // registrationTimestamp: bigint;
+  // decisionTimestamp: bigint;
+}
 
-// This container variant will make the cards animate in one by one
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1, // This creates the staggered effect
-    },
-  },
+// Type for project enriched with coordinates after fetching metadata
+type ProjectWithCoords = Project & {
+  coordinates: { lat: number; lng: number } | null;
 };
 
 export function PublicRegistry() {
-  const { data: allProjects, isLoading } = useReadContract({
+  const [allProjectsWithCoords, setAllProjectsWithCoords] = useState<ProjectWithCoords[]>([]);
+  const [isMetadataLoading, setIsMetadataLoading] = useState(true);
+
+  const { data: allProjectsRaw, isLoading: isContractLoading } = useReadContract({
     address: contractAddress,
     abi: contractAbi,
     functionName: 'getAllProjects',
+    query: { refetchInterval: 10000 }, // Keep projects updated
   });
 
-  // Filter for only VERIFIED projects (status === 2)
-  const verifiedProjects = (allProjects as any[] || []).filter(p => p.status === 2);
+  useEffect(() => {
+    const fetchAllMetadata = async () => {
+      setIsMetadataLoading(true);
+      if (!allProjectsRaw) {
+        setAllProjectsWithCoords([]);
+        setIsMetadataLoading(false);
+        return;
+      }
 
+      // Ensure `allProjectsRaw` is correctly typed when mapping.
+      const projects = Array.from(allProjectsRaw as unknown as Project[]); 
+      
+      const enrichedProjectsPromises = projects.map(async (project) => {
+        try {
+          const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${project.metadataHash}`);
+          if (response.data && typeof response.data.coordinates === 'object' && response.data.coordinates.lat !== undefined && response.data.coordinates.lng !== undefined) {
+            return { ...project, coordinates: response.data.coordinates };
+          }
+          console.warn(`Metadata for project ${project.id} is missing valid coordinates.`, response.data);
+          return { ...project, coordinates: null };
+        } catch (e) {
+          console.error(`Failed to fetch metadata for project ${project.id} (hash: ${project.metadataHash}):`, e);
+          return { ...project, coordinates: null };
+        }
+      });
+
+      const enrichedProjects = await Promise.all(enrichedProjectsPromises);
+      // Filter out projects for which coordinates could not be fetched
+      setAllProjectsWithCoords(enrichedProjects.filter(p => p.coordinates !== null));
+      setIsMetadataLoading(false);
+    };
+
+    if (!isContractLoading) {
+      fetchAllMetadata();
+    }
+  }, [allProjectsRaw, isContractLoading]);
+
+  const isLoading = isContractLoading || isMetadataLoading;
+
+  // ✅ NEW: Filter projects to only show verified ones (status === 2)
+  const verifiedProjectsWithCoords = useMemo(() => {
+    // Ensure 'status' is checked; assuming '2' is the verified status
+    return allProjectsWithCoords.filter(p => p.status === 2);
+  }, [allProjectsWithCoords]);
+
+  // Prepare pins for the WorldMap component from only verified projects
+  const mapPins = useMemo(() => {
+    return verifiedProjectsWithCoords.map(p => ({
+      lat: p.coordinates!.lat,
+      lng: p.coordinates!.lng,
+    }));
+  }, [verifiedProjectsWithCoords]);
+  
   return (
-    <div className="min-h-screen bg-gradient-surface p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <Globe className="h-16 w-16 mx-auto text-primary mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground">Public Carbon Project Registry</h1>
-          <p className="text-lg text-muted-foreground mt-4">
-            A transparent, on-chain record of all verified restoration projects.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        ) : (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {verifiedProjects.map(project => (
-              <PublicProjectCard key={project.id.toString()} project={project} />
-            ))}
-          </motion.div>
-        )}
+    <div className="p-4 md:p-8">
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold">Public Project Registry</h1>
+        <p className="text-muted-foreground mt-2">Explore verified blue carbon projects from around the world.</p>
       </div>
+
+      {isLoading && (
+        <div className="flex justify-center items-center h-64">
+          <LoaderThree/>
+          <p className="ml-4 text-muted-foreground">Loading projects and their data...</p>
+        </div>
+      )}
+      
+      {!isLoading && verifiedProjectsWithCoords.length === 0 && ( // ✅ Check verifiedProjectsWithCoords
+        <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+          <Info className="mx-auto h-8 w-8 mb-4" />
+          <h2 className="text-xl font-semibold">No Verified Projects Found</h2> {/* ✅ Updated Text */}
+          <p>There are no verified projects in the registry yet. Check back later!</p> {/* ✅ Updated Text */}
+        </div>
+      )}
+
+      {/* Project Cards Grid - Only render if not loading and verified projects exist */}
+      {!isLoading && verifiedProjectsWithCoords.length > 0 && ( // ✅ Check verifiedProjectsWithCoords
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+          }}
+          initial="hidden"
+          animate="visible"
+        >
+          {verifiedProjectsWithCoords.map(project => ( // ✅ Map over verifiedProjectsWithCoords
+            <PublicProjectCard key={project.id.toString()} project={project} />
+          ))}
+        </motion.div>
+      )}
+
+      {/* WorldMap component moved to the end of the page - Only render if not loading and verified projects exist */}
+      {!isLoading && verifiedProjectsWithCoords.length > 0 && ( // ✅ Check verifiedProjectsWithCoords
+        <motion.div 
+          className="mt-8 mb-4 flex flex-col items-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+        >
+          <h2 className="text-2xl font-bold mb-4">Our Global Impact (Verified Projects)</h2> {/* ✅ Updated Text */}
+          <p className="text-muted-foreground text-center mb-8 max-w-2xl">
+            Visually track the worldwide reach of *verified* projects registered on the Blue Ledger, bringing transparency to global carbon sequestration efforts.
+          </p>
+          <WorldMap pins={mapPins} pinColor="#22c55e" />
+        </motion.div>
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 // src/contracts/contractConfig.ts
 
-// ✅ This is the NEW address from your latest deployment
+
 export const contractAddress = "0xd52872F6E43cA8D075b5fe6900c65041AEc1440D";
 
-// ✅ This is the updated ABI from your newly compiled and deployed contract
+
 export const contractAbi = [
   {
     "type": "constructor",

@@ -1,81 +1,104 @@
-@import "leaflet/dist/leaflet.css";
+/* src/index.css */
+@import "leaflet/dist/leaflet.css"; /* Keep this if you're using Leaflet */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* In src/index.css */
 
+/* In your global CSS (e.g., globals.css or index.css) */
+.bg-gradient-animated {
+  background: linear-gradient(-45deg, #e0f2f7, #c6e6ee, #aedfe8, #96d8e2);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
 
-
-/* ... the rest of your CSS */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
 /* Blue Ledger Design System - Marine-inspired color palette */
 
 @layer base {
   :root {
-    /* Base colors - Sandy beige backgrounds */
+    /* --- Your EXISTING Base colors --- */
     --background: 45 20% 97%;
     --foreground: 200 50% 12%;
 
-    /* Card colors - Clean whites with ocean undertones */
+    /* --- Your EXISTING Card colors --- */
     --card: 0 0% 100%;
     --card-foreground: 200 50% 12%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 200 50% 12%;
 
-    /* Primary - Deep ocean blue */
+    /* --- Your EXISTING Primary & NEW Primary Glow --- */
     --primary: 200 85% 15%;
     --primary-foreground: 0 0% 98%;
-    --primary-glow: 200 75% 35%;
+    --primary-glow: 200 75% 35%; /* Existing */
 
-    /* Secondary - Lighter ocean blue */
+    /* --- Your EXISTING Secondary --- */
     --secondary: 200 25% 92%;
     --secondary-foreground: 200 85% 15%;
 
-    /* Muted - Sandy beige tones */
+    /* --- Your EXISTING Muted --- */
     --muted: 40 15% 94%;
     --muted-foreground: 200 25% 45%;
 
-    /* Accent - Seafoam green */
+    /* --- Your EXISTING Accent & NEW Accent Strong --- */
     --accent: 165 60% 85%;
     --accent-foreground: 165 80% 20%;
-    --accent-strong: 165 80% 20%;
+    --accent-strong: 165 80% 20%; /* Existing */
 
-    /* Success - Ocean green */
+    /* --- Your EXISTING Success --- */
     --success: 170 70% 35%;
     --success-foreground: 0 0% 98%;
 
-    /* Warning - Coral orange */
-    --warning: 25 95% 60%;
-    --warning-foreground: 25 90% 15%;
+    /* --- Your EXISTING Warning --- */
+    --warning: 25 95% 60%; /* Existing */
+    --warning-foreground: 25 90% 15%; /* Existing */
 
-    /* Destructive - Deep coral */
+    /* --- Your EXISTING Destructive --- */
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Borders and inputs - Ocean-inspired */
+    /* --- Your EXISTING Borders and inputs --- */
     --border: 200 20% 88%;
     --input: 200 20% 88%;
     --ring: 200 85% 15%;
 
-    /* Ocean gradients */
-    --gradient-ocean: linear-gradient(135deg, hsl(200 85% 15%), hsl(200 75% 35%));
-    --gradient-seafoam: linear-gradient(135deg, hsl(165 60% 85%), hsl(165 80% 20%));
-    --gradient-depth: linear-gradient(180deg, hsl(200 85% 15%), hsl(200 90% 8%));
-    --gradient-surface: linear-gradient(180deg, hsl(45 20% 97%), hsl(200 25% 92%));
+    /* --- NEW Custom Ocean Colors (from Lovable prompt, adapted) --- */
+    --ocean-deep: 200 85% 15%; /* Used for primary, aligns with prompt intent */
+    --ocean-primary: 200 75% 35%; /* Used for primary-glow, aligns with prompt intent */
+    --ocean-light: 200 50% 85%; /* Lighter blue for backgrounds */
+    --teal-primary: 180 65% 45%; /* Direct from Lovable's original suggestion */
+    --teal-light: 180 40% 75%; /* Direct from Lovable's original suggestion */
+    --sandy-beige: 45 25% 85%; /* Direct from Lovable's original suggestion */
+    --sage-green: 140 65% 35%; /* Direct from Lovable's original suggestion */
+    /* --- END NEW Custom Ocean Colors --- */
 
-    /* Shadows with ocean blue tint */
-    --shadow-ocean: 0 10px 30px -10px hsl(200 85% 15% / 0.3);
-    --shadow-gentle: 0 4px 20px -4px hsl(200 50% 30% / 0.15);
-    --shadow-card: 0 2px 10px -2px hsl(200 30% 40% / 0.1);
+    /* --- NEW Gradients (from Lovable prompt) --- */
+    --gradient-ocean: linear-gradient(135deg, hsl(var(--ocean-deep)), hsl(var(--ocean-primary)));
+    --gradient-seafoam: linear-gradient(135deg, hsl(165 60% 85%), hsl(165 80% 20%)); /* Adjusted from Lovable's 'teal' to match your 'accent' */
+    --gradient-depth: linear-gradient(180deg, hsl(var(--primary)), hsl(200 90% 8%)); /* Deep blue to very deep blue */
+    --gradient-surface: linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary))); /* Gentle background blend */
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--ocean-light))); /* Used in TradingPlatform.tsx body */
+    /* --- END NEW Gradients --- */
 
-    /* Animations */
+    /* --- NEW Shadows (from Lovable prompt) --- */
+    --shadow-ocean: 0 10px 30px -10px hsl(var(--primary) / 0.3);
+    --shadow-gentle: 0 4px 20px -4px hsl(var(--muted-foreground) / 0.15);
+    --shadow-card: 0 2px 10px -2px hsl(var(--foreground) / 0.1);
+    --shadow-elevated: 0 8px 40px -8px hsl(var(--primary) / 0.15); /* For hover effects, similar to Lovable's elevated */
+    /* --- END NEW Shadows --- */
+
+    /* --- Your EXISTING Animations (variables only, actual keyframes are in tailwind.config) --- */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-gentle: all 0.2s ease-out;
 
     --radius: 0.5rem;
 
-    /* Sidebar colors */
+    /* --- Your EXISTING Sidebar colors --- */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 200 50% 26.1%;
     --sidebar-primary: 200 85% 15%;
@@ -87,53 +110,78 @@
   }
 
   .dark {
-    /* Base colors - Deep ocean theme for dark mode */
+    /* --- Your EXISTING Dark mode Base colors --- */
     --background: 200 90% 8%;
     --foreground: 45 20% 95%;
 
-    /* Card colors */
+    /* --- Your EXISTING Dark mode Card colors --- */
     --card: 200 85% 10%;
     --card-foreground: 45 20% 95%;
 
     --popover: 200 85% 10%;
     --popover-foreground: 45 20% 95%;
 
-    /* Primary - Lighter ocean blue for dark mode */
+    /* --- Your EXISTING Dark mode Primary & NEW Primary Glow --- */
     --primary: 200 75% 75%;
     --primary-foreground: 200 90% 8%;
-    --primary-glow: 200 85% 85%;
+    --primary-glow: 200 85% 85%; /* Existing */
 
-    /* Secondary - Dark ocean tones */
+    /* --- Your EXISTING Dark mode Secondary --- */
     --secondary: 200 50% 15%;
     --secondary-foreground: 45 20% 95%;
 
-    /* Muted - Dark sandy tones */
+    /* --- Your EXISTING Dark mode Muted --- */
     --muted: 200 40% 12%;
     --muted-foreground: 200 15% 65%;
 
-    /* Accent - Dark seafoam */
+    /* --- Your EXISTING Dark mode Accent & NEW Accent Strong --- */
     --accent: 165 40% 15%;
     --accent-foreground: 165 60% 85%;
-    --accent-strong: 165 60% 75%;
+    --accent-strong: 165 60% 75%; /* Existing */
 
-    /* Success - Dark ocean green */
+    /* --- Your EXISTING Dark mode Success --- */
     --success: 170 60% 45%;
     --success-foreground: 0 0% 98%;
 
-    /* Warning - Dark coral */
-    --warning: 25 80% 55%;
-    --warning-foreground: 25 90% 15%;
+    /* --- Your EXISTING Dark mode Warning --- */
+    --warning: 25 80% 55%; /* Existing */
+    --warning-foreground: 25 90% 15%; /* Existing */
 
-    /* Destructive - Dark coral red */
+    /* --- Your EXISTING Dark mode Destructive --- */
     --destructive: 0 60% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Borders and inputs */
+    /* --- Your EXISTING Dark mode Borders and inputs --- */
     --border: 200 40% 18%;
     --input: 200 40% 18%;
     --ring: 200 75% 75%;
 
-    /* Dark mode sidebar */
+    /* --- NEW Custom Ocean Colors (for Dark Mode) --- */
+    --ocean-deep: 200 90% 8%;
+    --ocean-primary: 200 70% 20%;
+    --ocean-light: 200 50% 35%;
+    --teal-primary: 180 65% 45%;
+    --teal-light: 180 40% 55%;
+    --sandy-beige: 45 15% 25%;
+    --sage-green: 140 65% 45%;
+    /* --- END NEW Custom Ocean Colors --- */
+
+    /* --- NEW Gradients (for Dark Mode) --- */
+    --gradient-ocean: linear-gradient(135deg, hsl(var(--ocean-deep)), hsl(var(--ocean-primary)));
+    --gradient-seafoam: linear-gradient(135deg, hsl(165 40% 15%), hsl(165 60% 75%)); /* Adjusted for dark mode */
+    --gradient-depth: linear-gradient(180deg, hsl(var(--primary)), hsl(200 90% 5%));
+    --gradient-surface: linear-gradient(180deg, hsl(var(--background)), hsl(var(--secondary)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--ocean-light)));
+    /* --- END NEW Gradients --- */
+
+    /* --- NEW Shadows (for Dark Mode) --- */
+    --shadow-ocean: 0 10px 30px -10px hsl(var(--primary) / 0.4);
+    --shadow-gentle: 0 4px 20px -4px hsl(var(--muted-foreground) / 0.2);
+    --shadow-card: 0 2px 10px -2px hsl(var(--foreground) / 0.15);
+    --shadow-elevated: 0 8px 40px -8px hsl(var(--primary) / 0.25);
+    /* --- END NEW Shadows --- */
+
+    /* --- Your EXISTING Dark mode Sidebar colors --- */
     --sidebar-background: 200 90% 8%;
     --sidebar-foreground: 45 20% 95%;
     --sidebar-primary: 200 75% 75%;

@@ -40,7 +40,6 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
             const formData = new FormData();
             formData.append("file", selectedFile);
             
-            // ✅ FIX: Use the full, absolute URL for the Pinata API
             const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 
             const res = await axios.post(pinataUrl, formData, {
@@ -82,7 +81,7 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
 
     if (!isOwner) {
         return (
-            <Card className="shadow-card sticky top-8">
+            <Card className="shadow-card">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Upload /> Submit MRV Data</CardTitle>
                 </CardHeader>
@@ -94,7 +93,8 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
     }
 
     return (
-        <Card className="shadow-card sticky top-8">
+        // ✅ FIX: Removed the "sticky top-8" classes from the Card component
+        <Card className="shadow-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Upload /> Submit MRV Data</CardTitle>
                 <CardDescription>Upload new data (e.g., drone imagery) for verification.</CardDescription>

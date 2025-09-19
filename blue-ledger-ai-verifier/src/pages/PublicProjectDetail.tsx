@@ -4,17 +4,18 @@ import { useReadContract } from "wagmi";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
+import { PurchaseCredits } from "@/components/PurchaseCredits";
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Globe, MapPin, Award, Loader2, Rocket, FileUp, CheckCircle, ExternalLink, History } from "lucide-react";
-import { ProjectMap } from "@/components/ProjectMap"; // ✅ ADDED: Import the map component
+import { ProjectMap } from "@/components/ProjectMap";
+import { toast } from "sonner"; // ✅ ADDED: Import toast for user feedback
 
 // --- Type Definitions ---
 type ProjectData = readonly [ id: bigint, name: string, location: string, metadataHash: string, owner: `0x${string}`, status: number, lastSubmittedAt: bigint, carbonSequestered: bigint, creditsMinted: bigint, rejectionReason: string, registrationTimestamp: bigint, decisionTimestamp: bigint ];
-type MRVData = readonly { id: bigint; projectId: bigint; dataHash: string; timestamp: bigint; submitter: `0x${string}`; }[];
-// ✅ ADDED: 'coordinates' to the metadata type
+type MRVData = { readonly id: bigint; readonly projectId: bigint; readonly dataHash: string; readonly timestamp: bigint; readonly submitter: `0x${string}`; };
 interface ProjectMetadata { description: string; image: string; document?: string; coordinates?: { lat: number; lng: number } }
 type TimelineEvent = { title: string; description: string; timestamp: bigint; icon: React.ElementType; hash?: string; };
 
@@ -68,14 +69,15 @@ export default function PublicProjectDetail() {
   const [metadata, setMetadata] = useState<ProjectMetadata | null>(null);
   const [isMetadataLoading, setIsMetadataLoading] = useState(true);
 
-  const { data: projectData, isLoading: isLoadingProject } = useReadContract({
+  // ✅ ADDED: refetch functions to update the page data
+  const { data: projectData, isLoading: isLoadingProject, refetch: refetchProject } = useReadContract({
     address: contractAddress,
     abi: contractAbi,
     functionName: 'projects',
     args: [BigInt(projectId || 0)],
   });
 
-  const { data: mrvHistoryData } = useReadContract({
+  const { data: mrvHistoryData, refetch: refetchMrvHistory } = useReadContract({
     address: contractAddress,
     abi: contractAbi,
     functionName: 'getMRVDataForProject',
@@ -83,7 +85,7 @@ export default function PublicProjectDetail() {
   });
   
   const project = projectData as ProjectData | undefined;
-  const mrvHistory = mrvHistoryData as MRVData || [];
+  const mrvHistory = (mrvHistoryData as MRVData[] | undefined) || [];
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -112,11 +114,14 @@ export default function PublicProjectDetail() {
     const [, name, , metadataHash, , status, , , creditsMinted, , regTimestamp, decTimestamp] = project;
 
     if (regTimestamp > 0) events.push({ title: "Project Registered", description: `The journey for "${name}" began.`, timestamp: regTimestamp, icon: Rocket, hash: metadataHash });
-    mrvHistory.forEach((mrv, index) => events.push({ title: `MRV Data #${index + 1} Submitted`, description: "New field data was submitted for review.", timestamp: mrv.timestamp, icon: FileUp, hash: mrv.dataHash }));
+    
+    mrvHistory.forEach((mrv) => events.push({ title: `MRV Data #${mrv.id.toString()} Submitted`, description: "New field data was submitted for review.", timestamp: mrv.timestamp, icon: FileUp, hash: mrv.dataHash }));
+    
     if (status === 2) {
         events.push({ title: "Verification Complete", description: "Project data successfully verified.", timestamp: decTimestamp, icon: CheckCircle });
         events.push({ title: `${creditsMinted.toString()} Credits Minted`, description: "Carbon credits were minted on-chain.", timestamp: decTimestamp, icon: Award });
     }
+    
     return events.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, [project, mrvHistory]);
 
@@ -124,7 +129,14 @@ export default function PublicProjectDetail() {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  const [, name, location, , , , , , creditsMinted] = project;
+  const [id, name, location, , , status, , , creditsMinted] = project;
+
+  // ✅ ADDED: A success handler that will be passed to the child component
+  const handlePurchaseSuccess = () => {
+    toast.info("Updating project data...");
+    refetchProject();
+    refetchMrvHistory();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-surface p-4 md:p-8">
@@ -158,8 +170,7 @@ export default function PublicProjectDetail() {
                 )}
               </CardContent>
             </Card>
-
-            {/* ✅ ADDED: The new map card */}
+                
             <Card className="shadow-card">
               <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5" /> Project Location</CardTitle></CardHeader>
               <CardContent className="h-80 p-0">
@@ -177,8 +188,13 @@ export default function PublicProjectDetail() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="lg:col-span-1 row-start-1 lg:row-start-auto">
+          
+          <div className="lg:col-span-1 space-y-6">
+            {/* ✅ FIX: Pass the handlePurchaseSuccess function as the onSuccess prop */}
+            {status === 2 && (
+              <PurchaseCredits projectId={id} onSuccess={handlePurchaseSuccess} />
+            )}
+            
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
