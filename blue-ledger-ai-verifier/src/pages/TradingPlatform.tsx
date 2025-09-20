@@ -14,6 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimatedBackground } from '@/components/AnimatedBackground'; 
 import { CometCard } from "@/components/ui/CometCard"; 
+import { LoaderThree } from '@/components/ui/loader';
+import { MacbookScroll } from "@/components/ui/macbook-scroll"; // ✅ 1. Import the new component
+import insightsScreenshot from "@/assets/insights-screenshot.png"; 
+import {CardTitle, CardDescription } from '@/components/ui/card';
+import {Lock, Globe, Zap } from 'lucide-react';
 
 
 
@@ -531,9 +536,10 @@ const fetchMetadata = async (metadataHash: string) => {
 
         {/* Projects Grid */}
         {isLoading ? (
-          <div className="text-center py-12 text-ocean-primary">
-            <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
-            <p className="text-lg">Loading carbon credit projects...</p>
+          // ✅ THIS IS THE SECTION TO UPDATE
+          <div className="flex justify-center items-center h-64 flex-col text-center py-12 text-ocean-primary">
+            <LoaderThree /> {/* Replaced Loader2 with LoaderThree */}
+            <p className="mt-4 text-lg">Loading carbon credit projects...</p> {/* Adjusted margin-top */}
           </div>
         ) : error ? (
           <div className="text-center py-12 text-red-600 bg-red-50 border border-red-200 rounded-lg p-6 flex flex-col items-center">
@@ -569,6 +575,31 @@ const fetchMetadata = async (metadataHash: string) => {
           </motion.div>
         )}
       </div>
+      <div className="w-full dark:bg-black bg-white dark:bg-grid-white/[0.2] bg-grid-black/[0.2] relative">
+        <MacbookScroll
+          title={
+            <div className="text-center">
+              <h2 className="text-3xl md:text-5xl font-bold">
+                Fully Transparent & On-Chain
+              </h2>
+              <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto">
+                Every project, every credit, and every transaction is recorded on the blockchain,
+                providing an immutable ledger of climate action.
+              </p>
+            </div>
+          }
+          badge={
+            <Badge className="h-10 w-10 bg-primary/80 backdrop-blur-sm border-primary-foreground/20 text-primary-foreground">
+              <Leaf className="h-6 w-6" />
+            </Badge>
+          }
+          src={insightsScreenshot}
+          showGradient={true}
+        />
+      </div>
+
+      {/* ✅ FIX: Empty space div to provide "scroll runway" for the animation to finish */}
+      <div className="h-[50vh] w-full" />
     </div>
   );
 }

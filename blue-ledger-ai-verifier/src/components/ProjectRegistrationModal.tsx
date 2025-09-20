@@ -12,15 +12,15 @@ import { cn } from "@/lib/utils";
 import axios from "axios";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
+import { encodeAbiParameters, TransactionReceipt } from 'viem';
 
+// --- Interface Definitions (from previous context) ---
 interface ProjectRegistrationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
-
 type RegistrationStep = "details" | "upload";
-const TOAST_ID = "project-registration-toast";
 
 export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: ProjectRegistrationModalProps) {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>("details");
@@ -37,30 +37,14 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     query: { enabled: isConnected && !!userAddress },
   });
 
-  // ✅ FIX: Removed the unsupported onSuccess and onError callbacks from this hook.
-  // The logic is correctly handled by the useEffect hook below.
   const { data: hash, writeContract, isPending, error, reset } = useWriteContract();
-  
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
-  useEffect(() => {
-    if (isUploading) {
-      toast.loading("Step 1/3: Uploading files to IPFS...", { id: TOAST_ID });
-    } else if (isPending) {
-      toast.loading("Step 2/3: Awaiting wallet confirmation...", { id: TOAST_ID });
-    } else if (isConfirming) {
-      toast.loading("Step 3/3: Processing on-chain...", { id: TOAST_ID });
-    }
-  }, [isUploading, isPending, isConfirming]);
-
-
   const handleSubmit = async () => {
-    if (!isStepValid()) {
-      toast.error("Please complete all required fields and upload a file.");
-      return;
-    }
+    if (!isStepValid()) return;
     setIsUploading(true);
-    
+    const toastId = `reg-${Date.now()}`;
+    toast.loading("Uploading files to IPFS...", { id: toastId });
     try {
       const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
       const imageFormData = new FormData();
@@ -73,8 +57,6 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
         },
       });
       const imageIpfsHash = imageRes.data.IpfsHash;
-
-      setIsUploading(false);
 
       const metadata = { name: formData.name, description: formData.description, image: imageIpfsHash, coordinates: { lat: parseFloat(formData.lat), lng: parseFloat(formData.lng) } };
       const metadataBlob = new Blob([JSON.stringify(metadata)], { type: "application/json" });
@@ -90,6 +72,7 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       });
       const metadataIpfsHash = metadataRes.data.IpfsHash;
       
+      toast.loading("Awaiting wallet confirmation...", { id: toastId });
       writeContract({
         address: contractAddress,
         abi: contractAbi,
@@ -98,14 +81,15 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       });
     } catch (err) {
       console.error("Project Registration Error:", err);
-      toast.error("Project Registration Failed", { id: TOAST_ID, description: "Could not upload files to IPFS." });
+      toast.error("Project Registration Failed", { id: toastId, description: "Could not upload files to IPFS." });
+    } finally {
       setIsUploading(false);
     }
   };
 
   useEffect(() => {
     if (isConfirmed) {
-      toast.success("Project Registered Successfully!", { id: TOAST_ID });
+      toast.success("Project Registered Successfully!");
       onSuccess?.(); 
       setFormData({ name: "", description: "", location: "", lat: "", lng: "" });
       setUploadedFiles([]);
@@ -114,8 +98,7 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       reset();
     }
     if (error) {
-       toast.error("Transaction Failed", { id: TOAST_ID, description: error.message });
-       setIsUploading(false);
+       toast.error("Transaction Failed", { description: error.message });
        reset();
     }
   }, [isConfirmed, error, onOpenChange, onSuccess, reset]);
@@ -142,6 +125,7 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     if (!isNgo && isConnected) {
       return ( <Alert variant="destructive" className="mt-4"> <AlertCircle className="h-4 w-4" /><AlertTitle>Authorization Required</AlertTitle> <AlertDescription>Your wallet is not an authorized NGO. Please contact the NCCR admin.</AlertDescription> </Alert> );
     }
+    
     return (
       <>
         <div className="flex items-center gap-4 my-6">
@@ -151,19 +135,19 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
           <div className={cn("flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium", currentStep === "upload" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</div>
           <div className="text-sm font-medium">Initial Data</div>
         </div>
-        {currentStep === "details" && ( <div className="space-y-6"> <Card><CardContent className="space-y-4 pt-6"> <div><Label htmlFor="project-name">Project Name *</Label><Input id="project-name" placeholder="e.g., Sundarbans Mangrove Restoration" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} className="mt-2" /></div> <div><Label htmlFor="project-description">Description *</Label><Textarea id="project-description" placeholder="Describe your project goals..." value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} className="mt-2 min-h-[100px]" /></div> <div><Label htmlFor="project-location">Location *</Label><div className="relative mt-2"><MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input id="project-location" placeholder="e.g., West Bengal, India" value={formData.location} onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))} className="pl-10" /></div></div>
+        {currentStep === "details" && ( <div className="space-y-6"> <Card><CardContent className="space-y-4 pt-6"> <div><Label htmlFor="project-name">Project Name *</Label><Input id="project-name" placeholder="e.g., Sundarbans Mangrove Restoration" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} /></div> <div><Label htmlFor="project-description">Description *</Label><Textarea id="project-description" placeholder="Describe your project goals..." value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} className="min-h-[100px]" /></div> <div><Label htmlFor="project-location">Location *</Label><div className="relative"><MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input id="project-location" placeholder="e.g., West Bengal, India" value={formData.location} onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))} className="pl-10" /></div></div>
         <div className="grid grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="project-lat">Latitude *</Label>
-                <Input id="project-lat" type="number" placeholder="e.g., 21.9497" value={formData.lat} onChange={(e) => setFormData(p => ({ ...p, lat: e.target.value }))} className="mt-2" />
+                <Input id="project-lat" type="number" placeholder="e.g., 21.9497" value={formData.lat} onChange={(e) => setFormData(p => ({ ...p, lat: e.target.value }))} />
             </div>
             <div>
                 <Label htmlFor="project-lng">Longitude *</Label>
-                <Input id="project-lng" type="number" placeholder="e.g., 89.1833" value={formData.lng} onChange={(e) => setFormData(p => ({ ...p, lng: e.target.value }))} className="mt-2" />
+                <Input id="project-lng" type="number" placeholder="e.g., 89.1833" value={formData.lng} onChange={(e) => setFormData(p => ({ ...p, lng: e.target.value }))} />
             </div>
         </div>
         </CardContent></Card> </div> )}
-        {currentStep === "upload" && ( <div className="space-y-6"> <Card><CardHeader><CardTitle>Upload Initial Data</CardTitle><CardDescription>Provide documents and imagery for project verification.</CardDescription></CardHeader> <CardContent> <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors"> <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium mb-2">Drop files here or click to upload</h3><p className="text-sm text-muted-foreground mb-4">Upload PDFs, drone imagery, etc.</p> <input type="file" multiple onChange={handleFileUpload} className="hidden" id="file-upload" /> <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()}>Choose Files</Button> </div> {uploadedFiles.length > 0 && ( <div className="mt-4 space-y-2"><h4 className="font-medium">Uploaded Files ({uploadedFiles.length})</h4> <div className="space-y-2 max-h-32 overflow-y-auto pr-2"> {uploadedFiles.map((file, index) => (<div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg"><span className="text-sm font-medium truncate">{file.name}</span><span className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span></div>))} </div> </div> )} </CardContent> </Card> </div> )}
+        {currentStep === "upload" && ( <div className="space-y-6"> <Card><CardHeader><CardTitle>Upload Initial Data</CardTitle><CardDescription>Provide documents and imagery for project verification.</CardDescription></CardHeader> <CardContent> <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/ ৫০ transition-colors"> <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium mb-2">Drop files here or click to upload</h3><p className="text-sm text-muted-foreground mb-4">Upload PDFs, drone imagery, etc.</p> <input type="file" multiple onChange={handleFileUpload} className="hidden" id="file-upload" /> <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()}>Choose Files</Button> </div> {uploadedFiles.length > 0 && ( <div className="mt-4 space-y-2"><h4 className="font-medium">Uploaded Files ({uploadedFiles.length})</h4> <div className="space-y-2 max-h-32 overflow-y-auto pr-2"> {uploadedFiles.map((file, index) => (<div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg"><span className="text-sm font-medium truncate">{file.name}</span><span className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span></div>))} </div> </div> )} </CardContent> </Card> </div> )}
         <div className="flex items-center justify-between pt-6 border-t mt-4">
           <Button variant="outline" onClick={handleBack} disabled={currentStep === "details" || isProcessing}><ChevronLeft className="w-4 h-4 mr-2" />Back</Button>
           <div className="flex gap-3">
@@ -174,5 +158,17 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       </>
     );
   };
-  return ( <Dialog open={open} onOpenChange={onOpenChange}> <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle className="text-2xl font-semibold">Register New Project</DialogTitle><DialogDescription>Submit your blue carbon restoration project for on-chain verification.</DialogDescription></DialogHeader> {renderContent()} </DialogContent> </Dialog> );
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-semibold">Register New Project</DialogTitle>
+          <DialogDescription>Submit your blue carbon restoration project for on-chain verification.</DialogDescription>
+        </DialogHeader>
+        {renderContent()}
+      </DialogContent>
+    </Dialog>
+  );
 }
+
