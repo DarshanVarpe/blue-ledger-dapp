@@ -6,12 +6,13 @@ import { Loader2, Info, Download } from "lucide-react";
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ProjectReportPDF } from '@/components/ProjectReportPDF';
 import axios from "axios";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { DirectionAwareHover } from "@/components/ui/direction-aware-hover"; // ✅ 1. Import the new component
-import genericProjectImage from '@/assets/generic-project.jpg'; // Import a fallback image
+import { DirectionAwareHover } from "@/components/ui/direction-aware-hover";
+import genericProjectImage from '@/assets/generic-project.jpg';
+import { Globe as CobeGlobe, GLOBE_CONFIG } from "@/components/ui/Globe";
 
-// This interface must match all data needed for the report cards and the PDF itself.
+// This interface now includes coordinates for the map
 interface ReportProjectData {
   id: bigint;
   name: string;
@@ -21,7 +22,8 @@ interface ReportProjectData {
   status: number;
   creditsMinted: bigint;
   registrationTimestamp: bigint;
-  imageUrl?: string; // ✅ 2. Add optional imageUrl to the type
+  imageUrl?: string;
+  coordinates?: { lat: number; lng: number };
 }
 
 export default function ReportsPage() {
@@ -38,7 +40,6 @@ export default function ReportsPage() {
     query: { enabled: isConnected },
   });
 
-  // ✅ 3. Fetch metadata for images when projects are loaded
   useEffect(() => {
     const fetchMetadataForProjects = async () => {
       if (!allProjects) return;
@@ -47,24 +48,25 @@ export default function ReportsPage() {
         p => p.owner.toLowerCase() === connectedAddress?.toLowerCase()
       );
       
-      const projectsWithImages = await Promise.all(
+      const projectsWithDetails = await Promise.all(
         userProjects.map(async (project) => {
           try {
             const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${project.metadataHash}`);
-            let imageUrl = response.data.image || genericProjectImage;
+            const metadata = response.data;
+            let imageUrl = metadata.image || genericProjectImage;
             if (imageUrl.startsWith('ipfs://')) {
               imageUrl = `https://gateway.pinata.cloud/ipfs/${imageUrl.replace('ipfs://', '')}`;
             } else if (imageUrl.startsWith('Qm')) {
               imageUrl = `https://gateway.pinata.cloud/ipfs/${imageUrl}`;
             }
-            return { ...project, imageUrl };
+            return { ...project, imageUrl, coordinates: metadata.coordinates };
           } catch (e) {
             console.error(`Failed to fetch metadata for project ${project.id}:`, e);
-            return { ...project, imageUrl: genericProjectImage };
+            return { ...project, imageUrl: genericProjectImage, coordinates: undefined };
           }
         })
       );
-      setMyProjects(projectsWithImages);
+      setMyProjects(projectsWithDetails);
     };
 
     if (allProjects && connectedAddress) {
@@ -72,7 +74,27 @@ export default function ReportsPage() {
     }
   }, [allProjects, connectedAddress]);
 
+  const globeMarkers = useMemo(() => {
+    return myProjects
+      .filter(p => p.coordinates)
+      .map(project => ({
+        location: [project.coordinates!.lat, project.coordinates!.lng] as [number, number],
+        size: 0.05,
+      }));
+  }, [myProjects]);
+
+  const globeConfig = {
+    ...GLOBE_CONFIG,
+    markerColor: [34 / 255, 197 / 255, 94 / 255] as [number, number, number],
+    glowColor: [0.5, 0.5, 0.5] as [number, number, number],
+    markers: globeMarkers,
+  };
+
   const prepareReportData = async (project: ReportProjectData) => {
+    if (!publicClient) {
+      toast.error("Network client not ready. Please try again or refresh the page.");
+      return;
+    }
     const toastId = `report-${project.id}`;
     setGeneratingId(project.id);
     toast.info("Generating report... Please wait.", { id: toastId });
@@ -87,7 +109,7 @@ export default function ReportsPage() {
       });
 
       const metadataResponse = await axios.get(`https://gateway.pinata.cloud/ipfs/${project.metadataHash}`);
-      const metadata = { ...metadataResponse.data, image: project.imageUrl }; // Use the already fetched imageUrl
+      const metadata = { ...metadataResponse.data, image: project.imageUrl };
 
       setReportData({ project, mrvHistory, metadata });
       toast.success("Report is ready for download!", { id: toastId });
@@ -120,28 +142,27 @@ export default function ReportsPage() {
         </div>
       )}
       
-      {/* ✅ 4. Replace the old card grid with the new DirectionAwareHover grid */}
       {!isLoading && myProjects.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {myProjects.map((project) => (
-            <Card key={project.id.toString()} className="flex flex-col justify-between p-0 overflow-hidden">
-              <DirectionAwareHover imageUrl={project.imageUrl || genericProjectImage} className="w-full h-60">
-                <div className="flex flex-col">
-                    <h3 className="font-bold text-xl">{project.name}</h3>
-                    <p className="font-normal text-sm">{project.location}</p>
-                </div>
-              </DirectionAwareHover>
-
-              <CardContent className="pt-4">
-                 <p className="text-sm text-muted-foreground">Project ID: {project.id.toString()}</p>
-              </CardContent>
-              <CardFooter>
-                 {reportData && reportData.project.id === project.id ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {myProjects.map((project) => (
+              <Card key={project.id.toString()} className="flex flex-col justify-between p-0 overflow-hidden">
+                <DirectionAwareHover imageUrl={project.imageUrl || genericProjectImage} className="w-full aspect-video">
+                  <div className="flex flex-col">
+                      <h3 className="font-bold text-xl">{project.name}</h3>
+                      <p className="font-normal text-sm">{project.location}</p>
+                  </div>
+                </DirectionAwareHover>
+                <CardContent className="pt-4 flex-grow">
+                   <p className="text-sm text-muted-foreground">Project ID: {project.id.toString()}</p>
+                </CardContent>
+                <CardFooter>
+                  {reportData && reportData.project.id === project.id ? (
                    <PDFDownloadLink
                      document={<ProjectReportPDF {...reportData} />}
                      fileName={`BlueLedger_Report_${project.name.replace(/\s+/g, '_')}.pdf`}
                    >
-                     {({ blob, url, loading, error }) => (
+                     {({ loading }) => (
                        <Button className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
                          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                          Download Now
@@ -158,10 +179,24 @@ export default function ReportsPage() {
                      Generate Report
                    </Button>
                  )}
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          <div className="mt-20 text-center">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                  Global Operations 
+              </h2>
+              <p className="text-base md:text-lg font-normal text-muted-foreground mt-4 mb-8 max-w-2xl mx-auto">
+                  🌱 Restoring Blue Carbon Ecosystems Worldwide
+              </p>
+          </div>
+          <div className="relative flex h-[600px] w-full items-center justify-center overflow-hidden rounded-lg bg-slate-900 border shadow-lg dark:bg-black">
+              <CobeGlobe config={globeConfig} />
+              <div className="absolute w-full bottom-0 inset-x-0 h-40 bg-gradient-to-t from-slate-900 to-transparent z-40 dark:from-black" />
+          </div>
+        </>
       )}
     </div>
   );
