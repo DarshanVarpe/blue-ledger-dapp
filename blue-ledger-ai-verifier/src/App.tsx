@@ -19,7 +19,8 @@ import NotFound from "./pages/NotFound";
 import VerificationPage from "./pages/VerificationPage";
 import TradingPlatform from "./pages/TradingPlatform"; // ✅ ADD THIS IMPORT
 import ProjectsPage from "./pages/ProjectsPage"; // ✅ ADD THIS IMPORT
-import ReportsPage from "./pages/ReportsPage"; 
+import ReportsPage from "./pages/ReportsPage.tsx"; 
+import { ThemeToggle } from "@/components/ThemeToggle"; 
 
 
 
@@ -40,9 +41,12 @@ function App() {
                 <div className="h-6 w-px bg-border mx-2" />
                 <h1 className="text-lg font-semibold">Blue Ledger</h1>
                 
-                <div className="ml-auto">
+                {/* ✅ 2. Add the ThemeToggle component here */}
+                <div className="ml-auto flex items-center gap-4">
+                  <ThemeToggle />
                   <ConnectButton />
                 </div>
+
               </header>
               
               <main>

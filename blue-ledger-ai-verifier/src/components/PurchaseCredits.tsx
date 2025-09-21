@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
-import { formatUnits, parseUnits, maxUint256, TransactionReceipt } from 'viem'; // ✅ 1. Import maxUint256
+import { formatUnits, parseUnits, maxUint256 } from 'viem';
 
 // Contract configurations
 import { marketplaceAddress, marketplaceAbi } from "@/contracts/marketplaceConfig";
@@ -16,7 +16,7 @@ import { Badge } from "./ui/badge";
 
 interface PurchaseCreditsProps {
   projectId: bigint;
-  onSuccess: () => void;
+  onSuccess: () => void; // This prop is now the key to triggering the confetti
 }
 
 type Listing = readonly [id: bigint, projectId: bigint, seller: `0x${string}`, quantity: bigint, pricePerUnit: bigint, active: boolean];
@@ -25,8 +25,8 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
   const { address: connectedAddress } = useAccount();
   const [quantity, setQuantity] = useState("1");
   const [totalPrice, setTotalPrice] = useState<bigint>(0n);
+  // ✅ Confetti state is removed from this component
 
-  // --- DATA FETCHING ---
   const { data: listingId } = useReadContract({
     address: marketplaceAddress,
     abi: marketplaceAbi,
@@ -51,16 +51,11 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
     query: { enabled: !!connectedAddress },
   });
 
-  // --- TRANSACTION HOOKS ---
   const { data: approveHash, writeContract: approveTokens, isPending: isApproveWalletPending, reset: resetApprove } = useWriteContract();
-  const { isLoading: isConfirmingApprove, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({
-    hash: approveHash,
-  });
+  const { isLoading: isConfirmingApprove, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ hash: approveHash });
 
   const { data: buyHash, writeContract: buyCredits, isPending: isBuyWalletPending, reset: resetBuy } = useWriteContract();
-  const { isLoading: isConfirmingBuy, isSuccess: isBuySuccess } = useWaitForTransactionReceipt({
-    hash: buyHash,
-  });
+  const { isLoading: isConfirmingBuy, isSuccess: isBuySuccess } = useWaitForTransactionReceipt({ hash: buyHash });
   
   useEffect(() => {
     if (isApproveSuccess) {
@@ -73,11 +68,13 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
   useEffect(() => {
     if (isBuySuccess) {
       toast.success("Purchase Successful! Credits are in your wallet.");
+      // ✅ The component now just calls the onSuccess prop.
+      // The parent page will handle the confetti effect.
+      onSuccess(); 
       refetchListing();
       refetchAllowance();
       setQuantity("1");
       resetBuy();
-      onSuccess();
     }
   }, [isBuySuccess, refetchListing, refetchAllowance, resetBuy, onSuccess]);
 
@@ -91,29 +88,22 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
 
   const handleApprove = () => {
     toast.info("Awaiting approval in wallet to spend USDC...");
-    // ✅ 2. Approve the maximum possible amount
-    const amountToApprove = maxUint256; 
     approveTokens({
       address: paymentTokenAddress,
       abi: paymentTokenAbi,
       functionName: 'approve',
-      args: [marketplaceAddress, amountToApprove],
+      args: [marketplaceAddress, maxUint256],
     });
   };
 
   const handleBuy = () => {
     if (!listing) return;
-    const q = BigInt(quantity || "0");
-    if (q === 0n) {
-        toast.error("Please enter a valid quantity.");
-        return;
-    }
     toast.info("Processing purchase transaction...");
     buyCredits({
       address: marketplaceAddress,
       abi: marketplaceAbi,
       functionName: 'buyCredits',
-      args: [listing[0], q],
+      args: [listing[0], BigInt(quantity || "0")],
     });
   };
   
@@ -126,6 +116,7 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
   }
 
   return (
+    // ✅ The relative div and ConfettiProvider are removed from here.
     <Card className="border-accent-strong">
       <CardHeader>
         <CardTitle>Purchase Carbon Credits</CardTitle>
@@ -162,3 +153,4 @@ export function PurchaseCredits({ projectId, onSuccess }: PurchaseCreditsProps) 
     </Card>
   );
 }
+

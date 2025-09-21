@@ -1,15 +1,12 @@
 // src/pages/ProjectsPage.tsx
 
 import { useAccount, useReadContract } from "wagmi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ 1. Import useNavigate
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Loader2, Info, ArrowRight, MapPin } from "lucide-react";
-
-// Import the 3D Card components
-import { CardContainer, CardBody, CardItem } from '@/components/ui/3d-card'; // Make sure this path is correct
+import { PinContainer } from '@/components/ui/3d-pin'; // ✅ 2. Import the 3D Pin component
+import { RetroGrid } from "@/components/ui/RetroGrid";
 
 interface Project {
   id: bigint;
@@ -35,6 +32,7 @@ const statusInfo: { [key: number]: { label: string; className: string } } = {
 
 export default function ProjectsPage() {
   const { address: connectedAddress, isConnected } = useAccount();
+  const navigate = useNavigate(); // ✅ 3. Initialize the navigate hook
 
   const { data: allProjects, isLoading } = useReadContract({
     address: contractAddress,
@@ -48,72 +46,69 @@ export default function ProjectsPage() {
   );
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">My Projects</h1>
-        <p className="text-muted-foreground">A list of all the projects you have registered on the Blue Ledger.</p>
+    <div className="relative min-h-screen w-full overflow-hidden p-4 md:p-8">
+      <RetroGrid />
+      <div className="relative z-10">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">My Projects</h1>
+          <p className="text-muted-foreground">A list of all the projects you have registered on the Blue Ledger.</p>
+        </div>
+
+        {isLoading && (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!isLoading && myProjects.length === 0 && (
+          <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg bg-background/80 backdrop-blur-sm">
+            <Info className="mx-auto h-8 w-8 mb-4" />
+            <h2 className="text-xl font-semibold">No Projects Found</h2>
+            <p>You have not registered any projects yet. Start by registering a new project from your dashboard.</p>
+          </div>
+        )}
+        
+        {/* ✅ 4. Replaced the card grid with the new 3D Pin grid */}
+        {!isLoading && myProjects.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {myProjects.map((project) => (
+              <div
+                key={project.id.toString()}
+                className="h-[25rem] w-full flex items-center justify-center cursor-pointer"
+                onClick={() => navigate(`/project/${project.id.toString()}`)}
+              >
+                <PinContainer
+                  title={statusInfo[project.status]?.label || "Unknown Status"}
+                  // href prop is removed to use React Router's navigation
+                >
+                  <div className="flex basis-full flex-col p-4 tracking-tight text-slate-100/50 sm:basis-1/2 w-[20rem] h-[20rem]">
+                    <h3 className="max-w-xs !pb-2 !m-0 font-bold text-base text-slate-100">
+                      {project.name}
+                    </h3>
+                    <div className="text-base !m-0 !p-0 font-normal">
+                      <span className="text-slate-500 flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" /> {project.location}
+                      </span>
+                    </div>
+                    {/* A simple placeholder visual instead of an image */}
+                    <div className="flex flex-1 w-full rounded-lg mt-4 bg-gradient-to-br from-primary via-teal-primary to-ocean-light items-center justify-center">
+                        <p className="text-5xl font-bold text-white/50">{project.creditsMinted.toString()}</p>
+                        <p className="text-lg text-white/50 ml-2">BLC</p>
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <span className="text-sm text-slate-400">ID: {project.id.toString()}</span>
+                       <Badge className={statusInfo[project.status]?.className || "bg-gray-400"}>
+                          {statusInfo[project.status]?.label || "Unknown Status"}
+                        </Badge>
+                    </div>
+                  </div>
+                </PinContainer>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {isLoading && (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      )}
-
-      {!isLoading && myProjects.length === 0 && (
-        <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-          <Info className="mx-auto h-8 w-8 mb-4" />
-          <h2 className="text-xl font-semibold">No Projects Found</h2>
-          <p>You have not registered any projects yet. Start by registering a new project from your dashboard.</p>
-        </div>
-      )}
-
-      {!isLoading && myProjects.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {myProjects.map((project) => (
-            <Link key={project.id.toString()} to={`/project/${project.id.toString()}`} className="block group h-full w-full">
-              {/* Wrap each project card with CardContainer and CardBody */}
-              <CardContainer containerClassName="h-full w-full !py-0" className="h-full w-full inter-var">
-                <CardBody className="h-full w-full relative group/card dark:hover:shadow-2xl dark:hover:shadow-emerald-500/[0.1] dark:bg-black dark:border-white/[0.2] border-black/[0.1] rounded-xl p-0 border">
-                  {/* The Shadcn Card itself becomes a CardItem */}
-                  <CardItem translateZ={0} className="h-full w-full">
-                    <Card className="shadow-lg hover:shadow-primary/20 transition-all duration-300 h-full flex flex-col border-transparent hover:border-primary p-0">
-                      <CardHeader className="p-4 md:p-6 pb-2"> {/* Added back padding, adjusted bottom padding */}
-                        <CardItem translateZ={40}> {/* Apply translateZ to the title */}
-                          <CardTitle className="text-xl group-hover:text-primary transition-colors">{project.name}</CardTitle>
-                        </CardItem>
-                        <CardItem translateZ={30}> {/* Apply translateZ to the description */}
-                          <CardDescription className="flex items-center gap-2 pt-1">
-                            <MapPin className="h-4 w-4" /> {project.location}
-                          </CardDescription>
-                        </CardItem>
-                      </CardHeader>
-
-                      <CardContent className="flex-grow p-4 md:p-6 pt-0"> {/* Added padding back, removed top padding */}
-                        <CardItem translateZ={30}> {/* Apply translateZ to the badge */}
-                          <Badge className={statusInfo[project.status]?.className || "bg-gray-400"}>
-                            {statusInfo[project.status]?.label || "Unknown Status"}
-                          </Badge>
-                        </CardItem>
-                      </CardContent>
-
-                      <CardFooter className="p-4 md:p-6 pt-0"> {/* Added padding back, removed top padding */}
-                        <CardItem translateZ={30} className="w-full"> {/* Apply translateZ to the button */}
-                          <Button asChild className="w-full">
-                            <Link to={`/project/${project.id.toString()}`}>
-                              View Details <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </CardItem>
-                      </CardFooter>
-                    </Card>
-                  </CardItem>
-                </CardBody>
-              </CardContainer>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
+

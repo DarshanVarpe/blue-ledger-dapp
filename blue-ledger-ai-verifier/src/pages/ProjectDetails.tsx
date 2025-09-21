@@ -280,10 +280,9 @@ export default function ProjectDetails() {
           
           {/* Right Column (1/3 width on large screens) */}
           <div className="lg:col-span-1 space-y-6">
-            {isOwner && (statusKey === "PENDING" || statusKey === "AWAITING_VERIFICATION") && (
+            {isOwner && (statusKey === "PENDING" || statusKey === "AWAITING_VERIFICATION" || statusKey === "VERIFIED") && (
                 <MRVSubmission projectId={id.toString()} isOwner={isOwner} onSuccess={handleSuccess} />
             )}
-
             {isOwner && statusKey === "VERIFIED" && (
                 <ListCredits project={project} onSuccess={handleSuccess} />
             )}

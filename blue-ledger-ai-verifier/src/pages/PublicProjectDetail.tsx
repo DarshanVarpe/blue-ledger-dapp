@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Globe, MapPin, Award, Loader2, Rocket, FileUp, CheckCircle, ExternalLink, History } from "lucide-react";
 import { ProjectMap } from "@/components/ProjectMap";
 import { toast } from "sonner"; // ✅ ADDED: Import toast for user feedback
+import { ConfettiProvider } from "@/components/ui/confetti";
 
 // --- Type Definitions ---
 type ProjectData = readonly [ id: bigint, name: string, location: string, metadataHash: string, owner: `0x${string}`, status: number, lastSubmittedAt: bigint, carbonSequestered: bigint, creditsMinted: bigint, rejectionReason: string, registrationTimestamp: bigint, decisionTimestamp: bigint ];
@@ -68,6 +69,7 @@ export default function PublicProjectDetail() {
   const { projectId } = useParams();
   const [metadata, setMetadata] = useState<ProjectMetadata | null>(null);
   const [isMetadataLoading, setIsMetadataLoading] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // ✅ ADDED: refetch functions to update the page data
   const { data: projectData, isLoading: isLoadingProject, refetch: refetchProject } = useReadContract({
@@ -131,15 +133,23 @@ export default function PublicProjectDetail() {
 
   const [id, name, location, , , status, , , creditsMinted] = project;
 
-  // ✅ ADDED: A success handler that will be passed to the child component
+    // ✅ 3. Create a success handler that triggers confetti and data refresh
   const handlePurchaseSuccess = () => {
     toast.info("Updating project data...");
+    setShowConfetti(true); // Fire the confetti!
     refetchProject();
     refetchMrvHistory();
+    // Optional: Hide confetti after a few seconds
+    setTimeout(() => setShowConfetti(false), 5000); 
   };
 
   return (
     <div className="min-h-screen bg-gradient-surface p-4 md:p-8">
+      {showConfetti && (
+        <div className="absolute inset-0 z-50 pointer-events-none">
+          <ConfettiProvider>{null}</ConfettiProvider>
+        </div>
+      )}
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">

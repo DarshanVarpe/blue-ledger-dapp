@@ -107,6 +107,9 @@
     --sidebar-accent-foreground: 200 85% 15%;
     --sidebar-border: 200 20% 88%;
     --sidebar-ring: 200 85% 15%;
+
+    /* ✅ ADDED: Retro Grid Line Colors for Light Mode */
+    --retro-grid-line-light: hsl(var(--teal-primary) / 0.2);
   }
 
   .dark {
@@ -161,7 +164,7 @@
     --ocean-primary: 200 70% 20%;
     --ocean-light: 200 50% 35%;
     --teal-primary: 180 65% 45%;
-    --teal-light: 180 40% 55%;
+    --teal-light: 180 40% 75%;
     --sandy-beige: 45 15% 25%;
     --sage-green: 140 65% 45%;
     /* --- END NEW Custom Ocean Colors --- */
@@ -190,6 +193,19 @@
     --sidebar-accent-foreground: 45 20% 95%;
     --sidebar-border: 200 40% 18%;
     --sidebar-ring: 200 75% 75%;
+
+    /* ✅ ADDED: Retro Grid Line Colors for Dark Mode */
+    --retro-grid-line-dark: hsl(var(--teal-light) / 0.2);
+  }
+
+  /* ✅ ADDED: Keyframe animation for the Retro Grid component */
+  @keyframes grid {
+    0% {
+      transform: translateY(-50%);
+    }
+    100% {
+      transform: translateY(0);
+    }
   }
 }
 
@@ -202,3 +218,4 @@
     @apply bg-background text-foreground;
   }
 }
+

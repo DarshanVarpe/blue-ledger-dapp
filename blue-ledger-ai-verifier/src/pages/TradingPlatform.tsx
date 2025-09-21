@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, MapPin, Waves, Leaf, Users, DollarSign, Loader2, Info } from 'lucide-react';
 import { useReadContract, usePublicClient } from 'wagmi'; // usePublicClient to access client for direct calls
-import { Link } from 'react-router-dom';
+import { Link ,useNavigate } from 'react-router-dom';
 import { formatUnits } from 'viem';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { MacbookScroll } from "@/components/ui/macbook-scroll"; // ✅ 1. Import
 import insightsScreenshot from "@/assets/insights-screenshot.png"; 
 import {CardTitle, CardDescription } from '@/components/ui/card';
 import {Lock, Globe, Zap } from 'lucide-react';
+import { PinContainer } from "@/components/ui/3d-pin"; 
 
 
 
@@ -99,92 +100,44 @@ const getEcosystemColorClass = (ecosystem: string) => {
 };
 
 // --- Re-usable Project Card Component ---
-const ProjectCard = ({ project, index }: { project: ProjectForSale, index: number }) => {
-  
-  return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.6 }
-        }
-      }}
-      initial="hidden"
-      animate="visible"
-      whileHover={{
-        scale: 1.02,
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)", // More pronounced shadow
-        y: -5, // Slight lift
-        transition: { duration: 0.2, ease: "easeOut" }
-      }}
-      className="h-full" // Ensure card takes full height for grid alignment
-    >
-      <Card className="overflow-hidden shadow-card transition-all duration-300 bg-white h-full flex flex-col">
-        <div className="relative">
-          <img
-            src={project.imageURL || genericProjectImage}
-            alt={project.name}
-            className="w-full h-48 object-cover"
-          />
-          <Badge className="absolute top-3 right-3 bg-success text-success-foreground">
-            For Sale
-          </Badge>
-          <Badge
-            className={`absolute top-3 left-3 ${getEcosystemColorClass(project.ecosystem)} flex items-center gap-1`}
-          >
-            {getEcosystemIcon(project.ecosystem)}
-            {project.ecosystem}
-          </Badge>
-        </div>
+const ProjectCard = ({ project }: { project: ProjectForSale }) => {
+  // ✅ 2. Initialize the navigate hook
+  const navigate = useNavigate();
 
-        <CardHeader className="pb-3 flex-grow">
-          <h3 className="text-xl font-semibold text-ocean-primary line-clamp-2 min-h-[56px]">
+  const handleNavigate = () => {
+    navigate(`/registry/project/${project.id.toString()}`);
+  };
+
+  return (
+    <div className="h-[25rem] w-full flex items-center justify-center cursor-pointer" onClick={handleNavigate}>
+      <PinContainer
+        title={`$${formatUnits(project.pricePerCredit, 6)} / tonne`}
+        href={`/registry/project/${project.id.toString()}`}
+      >
+        <div className="flex basis-full flex-col p-4 tracking-tight text-slate-100/50 sm:basis-1/2 w-[20rem] h-[20rem]">
+          <h3 className="max-w-xs !pb-2 !m-0 font-bold text-base text-slate-100">
             {project.name}
           </h3>
-          <div className="flex items-center text-muted-foreground text-sm">
-            <MapPin className="h-4 w-4 mr-1" />
-            {project.location}
+          <div className="text-base !m-0 !p-0 font-normal">
+            <span className="text-slate-500 flex items-center">
+              <MapPin className="h-4 w-4 mr-1" /> {project.location}
+            </span>
           </div>
-        </CardHeader>
-
-        <CardContent className="py-2">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Price per Credit</span>
-              <span className="text-lg font-bold text-ocean-primary">
-                ${formatUnits(project.pricePerCredit, 6)} / tonne
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Available Quantity</span>
-              <span className="font-semibold text-ocean-primary">
-                {project.availableQuantity.toLocaleString()} tonnes
-              </span>
-            </div>
+          <div 
+            className="flex flex-1 w-full rounded-lg mt-4 bg-cover bg-center" 
+            style={{ backgroundImage: `url(${project.imageURL || genericProjectImage})` }} 
+          />
+          <div className="flex justify-between items-center mt-4">
+             <span className="text-sm text-slate-400">Available: {project.availableQuantity.toLocaleString()} tonnes</span>
+             {project.ecosystem !== 'Other' && (
+                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    {project.ecosystem}
+                </Badge>
+             )}
           </div>
-        </CardContent>
-
-         <CardFooter className="pt-3">
-  <motion.div
-    // Wrapper for Framer Motion effects on the button
-    whileTap={{ scale: 0.95 }} // Shrink slightly on click
-    transition={{ type: "spring", stiffness: 400, damping: 17 }} // Springy effect
-    className="w-full" // Ensure it takes full width
-  >
-    <Button
-      asChild
-      className="w-full bg-gradient-teal hover:opacity-90 text-white font-semibold"
-    >
-      <Link to={`/registry/project/${project.id.toString()}`} >
-        View Details & Purchase
-      </Link>
-    </Button>
-  </motion.div>
-</CardFooter>
-      </Card>
-    </motion.div>
+        </div>
+      </PinContainer>
+    </div>
   );
 };
 

@@ -13,6 +13,7 @@ import axios from "axios";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
 import { encodeAbiParameters, TransactionReceipt } from 'viem';
+import { FileUpload } from "@/components/ui/file-upload"; // ✅ 1. Import the new component
 
 // --- Interface Definitions (from previous context) ---
 interface ProjectRegistrationModalProps {
@@ -51,9 +52,9 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       imageFormData.append("file", uploadedFiles[0]);
       
       const imageRes = await axios.post(pinataUrl, imageFormData, {
-        headers: { 
-          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
-          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY, 
+        headers: {
+          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY,
+          'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY,
         },
       });
       const imageIpfsHash = imageRes.data.IpfsHash;
@@ -65,8 +66,8 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
       metadataFormData.append("file", metadataFile);
       
       const metadataRes = await axios.post(pinataUrl, metadataFormData, {
-         headers: { 
-          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY, 
+         headers: {
+          'pinata_api_key': import.meta.env.VITE_PINATA_API_KEY,
           'pinata_secret_api_key': import.meta.env.VITE_PINATA_SECRET_API_KEY,
         },
       });
@@ -90,7 +91,7 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
   useEffect(() => {
     if (isConfirmed) {
       toast.success("Project Registered Successfully!");
-      onSuccess?.(); 
+      onSuccess?.();
       setFormData({ name: "", description: "", location: "", lat: "", lng: "" });
       setUploadedFiles([]);
       setCurrentStep("details");
@@ -105,10 +106,10 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
 
   const handleNext = () => currentStep === "details" && setCurrentStep("upload");
   const handleBack = () => currentStep === "upload" && setCurrentStep("details");
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setUploadedFiles(prev => [...prev, ...files]);
-    toast.success(`${files.length} file(s) selected.`);
+  
+  // ✅ 2. Update the file handler to accept an array of files
+  const handleFileUpload = (newFiles: File[]) => {
+    setUploadedFiles(newFiles);
   };
 
   const isStepValid = () => {
@@ -135,6 +136,7 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
           <div className={cn("flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium", currentStep === "upload" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>2</div>
           <div className="text-sm font-medium">Initial Data</div>
         </div>
+        
         {currentStep === "details" && ( <div className="space-y-6"> <Card><CardContent className="space-y-4 pt-6"> <div><Label htmlFor="project-name">Project Name *</Label><Input id="project-name" placeholder="e.g., Sundarbans Mangrove Restoration" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} /></div> <div><Label htmlFor="project-description">Description *</Label><Textarea id="project-description" placeholder="Describe your project goals..." value={formData.description} onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))} className="min-h-[100px]" /></div> <div><Label htmlFor="project-location">Location *</Label><div className="relative"><MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input id="project-location" placeholder="e.g., West Bengal, India" value={formData.location} onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))} className="pl-10" /></div></div>
         <div className="grid grid-cols-2 gap-4">
             <div>
@@ -147,7 +149,22 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
             </div>
         </div>
         </CardContent></Card> </div> )}
-        {currentStep === "upload" && ( <div className="space-y-6"> <Card><CardHeader><CardTitle>Upload Initial Data</CardTitle><CardDescription>Provide documents and imagery for project verification.</CardDescription></CardHeader> <CardContent> <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/ ৫০ transition-colors"> <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium mb-2">Drop files here or click to upload</h3><p className="text-sm text-muted-foreground mb-4">Upload PDFs, drone imagery, etc.</p> <input type="file" multiple onChange={handleFileUpload} className="hidden" id="file-upload" /> <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()}>Choose Files</Button> </div> {uploadedFiles.length > 0 && ( <div className="mt-4 space-y-2"><h4 className="font-medium">Uploaded Files ({uploadedFiles.length})</h4> <div className="space-y-2 max-h-32 overflow-y-auto pr-2"> {uploadedFiles.map((file, index) => (<div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg"><span className="text-sm font-medium truncate">{file.name}</span><span className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</span></div>))} </div> </div> )} </CardContent> </Card> </div> )}
+
+        {/* ✅ 3. Replace the upload step's content */}
+        {currentStep === "upload" && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload Initial Data</CardTitle>
+                <CardDescription>Provide documents and imagery for project verification.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUpload onChange={handleFileUpload} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between pt-6 border-t mt-4">
           <Button variant="outline" onClick={handleBack} disabled={currentStep === "details" || isProcessing}><ChevronLeft className="w-4 h-4 mr-2" />Back</Button>
           <div className="flex gap-3">
@@ -171,4 +188,3 @@ export function ProjectRegistrationModal({ open, onOpenChange, onSuccess }: Proj
     </Dialog>
   );
 }
-

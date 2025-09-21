@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertCircle, Loader2, Upload, FileUp } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import axios from "axios";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { contractAddress, contractAbi } from "@/contracts/contractConfig";
+import { FileUpload } from "@/components/ui/file-upload"; // ✅ 1. Import the new component
 
 interface MRVSubmissionProps {
     projectId: string | undefined;
@@ -23,9 +22,12 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
     const { data: hash, writeContract, isPending, reset, error } = useWriteContract();
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            setSelectedFile(event.target.files[0]);
+    // ✅ 2. Update the file handler to accept an array and take the first file
+    const handleFileChange = (newFiles: File[]) => {
+        if (newFiles.length > 0) {
+            setSelectedFile(newFiles[0]); 
+        } else {
+            setSelectedFile(null);
         }
     };
 
@@ -39,7 +41,6 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
         try {
             const formData = new FormData();
             formData.append("file", selectedFile);
-            
             const pinataUrl = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 
             const res = await axios.post(pinataUrl, formData, {
@@ -55,9 +56,10 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
             writeContract({
                 address: contractAddress, abi: contractAbi, functionName: "submitMRVData", args: [BigInt(projectId || 0), ipfsHash],
             });
-        } catch (error) {
+        } catch (error: any) { // Better error typing
             console.error("IPFS Upload Error:", error);
-            toast.error("IPFS Upload Failed", { id: "mrv-upload", description: "Please check console for details." });
+            const errorMessage = error.response?.data?.error || error.message || "An unknown error occurred.";
+            toast.error("IPFS Upload Failed", { id: "mrv-upload", description: errorMessage });
         } finally {
             setIsUploading(false);
         }
@@ -74,6 +76,7 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
         }
         if (error) {
             toast.error("Transaction Failed", { id: toastId, description: error.message });
+            reset(); // Also reset on error
         }
     }, [isConfirming, isConfirmed, hash, onSuccess, reset, error]);
 
@@ -93,23 +96,18 @@ export function MRVSubmission({ projectId, isOwner, onSuccess }: MRVSubmissionPr
     }
 
     return (
-        // ✅ FIX: Removed the "sticky top-8" classes from the Card component
         <Card className="shadow-card">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Upload /> Submit MRV Data</CardTitle>
-                <CardDescription>Upload new data (e.g., drone imagery) for verification.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Upload /> Submit New MRV Data</CardTitle>
+                <CardDescription>Upload new data (e.g., drone imagery) for ongoing verification.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <div>
-                        <Label htmlFor="file-upload">MRV Data File (Image, PDF, etc.)</Label>
-                        <Input id="file-upload" type="file" onChange={handleFileChange} className="mt-1 file:text-primary file:font-semibold"/>
-                        {selectedFile && <p className="text-xs text-muted-foreground mt-2">Selected: {selectedFile.name}</p>}
-                    </div>
-                    <Button className="w-full" onClick={handleUploadAndSubmit} disabled={!selectedFile || isProcessing}>
-                        {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : <><FileUp className="mr-2 h-4 w-4" />Upload & Submit</>}
-                    </Button>
-                </div>
+            <CardContent className="space-y-4">
+              {/* ✅ 3. Replace the old input with the new FileUpload component */}
+              <FileUpload onChange={handleFileChange} multiple={false} />
+              
+              <Button className="w-full" onClick={handleUploadAndSubmit} disabled={!selectedFile || isProcessing}>
+                  {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</> : <><FileUp className="mr-2 h-4 w-4" />Upload & Submit Data</>}
+              </Button>
             </CardContent>
         </Card>
     );
