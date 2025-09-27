@@ -5,14 +5,30 @@ require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-app.use(cors());
+
+// ✅ FIX: Configure CORS to allow your deployed frontend
+const whitelist = [
+  'http://localhost:8080', // Your local frontend for development
+  'https://blue-ledger-dapp.vercel.app' // Your deployed frontend
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions)); // Use the configured options
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001; // Important for Render deployment
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("\nFATAL ERROR: GEMINI_API_KEY is not defined in your .env file.");
-  console.error("Please ensure you have a .env file in the /backend directory with your key.\n");
   process.exit(1);
 }
 
@@ -26,7 +42,7 @@ async function urlToGenerativePart(url) {
     if (!mimeType || !mimeType.startsWith('image/')) {
         throw new Error(`Fetched file from IPFS is not a valid image type. Received: ${mimeType}`);
     }
-    console.log(`✅ Successfully fetched image from IPFS. Mime type: ${mimeType}`);
+    console.log(`✅ Successfully fetched image from URL. Mime type: ${mimeType}`);
     return {
       inlineData: {
         data: buffer.toString('base64'),
@@ -34,8 +50,8 @@ async function urlToGenerativePart(url) {
       },
     };
   } catch (error) {
-    console.error("❌ Error fetching image from IPFS:", error.message);
-    throw new Error("Could not retrieve or process the image from the IPFS gateway.");
+    console.error("❌ Error fetching image from URL:", error.message);
+    throw new Error("Could not retrieve or process the image from the provided URL.");
   }
 }
 
@@ -48,17 +64,16 @@ app.post('/api/analyze-image', async (req, res) => {
   try {
     console.log(`\nBackend received request to analyze image URL: ${imageUrl}`);
     
-    // ✅ FIX: Changed the model name to the correct, latest stable version.
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
 
     const prompt = `
-      Analyze this aerial image of a coastal ecosystem, likely for a blue carbon project.
-      Provide your analysis in a structured JSON format. The JSON object must have the following keys:
-      - "saplingCount": An object with "detected" (your best integer estimate of trees/saplings), "estimated" (round the detected number to the nearest thousand), and "confidence" (a percentage from 0-100).
-      - "canopyHealth": An object with "percentage" (your estimate of healthy vegetation coverage) and a "status" string ("Excellent", "Good", "Fair", or "Poor").
-      - "anomalies": An array of objects, where each object represents a potential issue. Each object must have "location" (a general area like "Sector B-4"), "type" (e.g., "Potential dead vegetation"), and "severity" ("Low", "Medium", or "High"). If no anomalies are found, return an empty array.
-      - "carbonCapture": Your best integer estimate for the tonnes of carbon this project could sequester based on the visual evidence.
-      Do not include any text or markdown formatting outside of the JSON object itself.
+      Analyze this aerial image of a coastal ecosystem for a blue carbon project.
+      Provide analysis in a structured JSON format with these keys:
+      - "saplingCount": {"detected": integer, "estimated": integer, "confidence": float}.
+      - "canopyHealth": {"percentage": integer, "status": "Excellent" | "Good" | "Fair" | "Poor"}.
+      - "anomalies": An array of objects, each with "location", "type", and "severity" ("Low", "Medium", "High"). Return an empty array if none.
+      - "carbonCapture": An integer estimate for tonnes of carbon sequestered.
+      Do not include any text outside of the JSON object.
     `;
     
     const imageParts = [
@@ -69,7 +84,6 @@ app.post('/api/analyze-image', async (req, res) => {
     const result = await model.generateContent([prompt, ...imageParts]);
     const response = await result.response;
     const text = response.text();
-
     console.log("✅ Received response from Gemini API.");
 
     const jsonString = text.replace(/```json\n|```/g, '').trim();
@@ -78,11 +92,10 @@ app.post('/api/analyze-image', async (req, res) => {
     res.json(aiData);
   } catch (error) {
     console.error("❌ AI Analysis Error in /api/analyze-image:", error);
-    res.status(500).json({ error: 'Failed to analyze image. Check the backend console for specific details.' });
+    res.status(500).json({ error: 'Failed to analyze image. Check backend console.' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🤖 AI server running on http://localhost:${PORT}`);
+  console.log(`🤖 AI server running on port ${PORT}`);
 });
-
