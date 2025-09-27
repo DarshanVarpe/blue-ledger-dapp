@@ -12,6 +12,7 @@ const PORT = 3001;
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("\nFATAL ERROR: GEMINI_API_KEY is not defined in your .env file.");
+  console.error("Please ensure you have a .env file in the /backend directory with your key.\n");
   process.exit(1);
 }
 
@@ -23,9 +24,9 @@ async function urlToGenerativePart(url) {
     const buffer = Buffer.from(response.data, 'binary');
     const mimeType = response.headers['content-type'];
     if (!mimeType || !mimeType.startsWith('image/')) {
-        throw new Error(`Fetched file is not a valid image type. Received: ${mimeType}`);
+        throw new Error(`Fetched file from IPFS is not a valid image type. Received: ${mimeType}`);
     }
-    console.log(`✅ Successfully fetched image from URL. Mime type: ${mimeType}`);
+    console.log(`✅ Successfully fetched image from IPFS. Mime type: ${mimeType}`);
     return {
       inlineData: {
         data: buffer.toString('base64'),
@@ -33,8 +34,8 @@ async function urlToGenerativePart(url) {
       },
     };
   } catch (error) {
-    console.error("❌ Error fetching image from URL:", error.message);
-    throw new Error("Could not retrieve or process the image from the provided URL.");
+    console.error("❌ Error fetching image from IPFS:", error.message);
+    throw new Error("Could not retrieve or process the image from the IPFS gateway.");
   }
 }
 
@@ -47,8 +48,8 @@ app.post('/api/analyze-image', async (req, res) => {
   try {
     console.log(`\nBackend received request to analyze image URL: ${imageUrl}`);
     
-    // ✅ FIX: Changed the model name to the correct, latest version.
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    // ✅ FIX: Changed the model name to the correct, latest stable version.
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
 
     const prompt = `
       Analyze this aerial image of a coastal ecosystem, likely for a blue carbon project.
