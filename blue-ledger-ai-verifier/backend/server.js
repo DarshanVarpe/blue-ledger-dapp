@@ -38,9 +38,8 @@ async function urlToGenerativePart(url) {
   }
 }
 
-// ✅ FIX: This endpoint now accepts an `imageUrl` instead of an `ipfsHash`
 app.post('/api/analyze-image', async (req, res) => {
-  const { imageUrl } = req.body; // Changed from ipfsHash
+  const { imageUrl } = req.body;
   if (!imageUrl) {
     return res.status(400).json({ error: 'Image URL is required' });
   }
@@ -48,7 +47,8 @@ app.post('/api/analyze-image', async (req, res) => {
   try {
     console.log(`\nBackend received request to analyze image URL: ${imageUrl}`);
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // ✅ FIX: Changed the model name to the correct, latest version.
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const prompt = `
       Analyze this aerial image of a coastal ecosystem, likely for a blue carbon project.
@@ -84,3 +84,4 @@ app.post('/api/analyze-image', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🤖 AI server running on http://localhost:${PORT}`);
 });
+
