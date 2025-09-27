@@ -5,46 +5,34 @@ require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-
-// ✅ FIX: Configure CORS to allow your deployed frontend
-const whitelist = [
-  'http://localhost:8080', // Your local frontend for development
-  'https://blue-ledger-dapp.vercel.app' // Your deployed frontend
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
-};
-
-app.use(cors(corsOptions)); // Use the configured options
+app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3001; // Important for Render deployment
+const PORT = 3001;
 
+// 1. Check for the API Key on startup for clearer errors
 if (!process.env.GEMINI_API_KEY) {
   console.error("\nFATAL ERROR: GEMINI_API_KEY is not defined in your .env file.");
-  process.exit(1);
+  console.error("Please ensure you have a .env file in the /backend directory with your key.\n");
+  process.exit(1); // Exit the process if the key is missing
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Helper function to fetch an image from IPFS and convert to base64
 async function urlToGenerativePart(url) {
   try {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     const buffer = Buffer.from(response.data, 'binary');
+    
+    // 2. Automatically detect the image's mime type
     const mimeType = response.headers['content-type'];
     if (!mimeType || !mimeType.startsWith('image/')) {
         throw new Error(`Fetched file from IPFS is not a valid image type. Received: ${mimeType}`);
     }
-    console.log(`✅ Successfully fetched image from URL. Mime type: ${mimeType}`);
+
+    console.log(`✅ Successfully fetched image from IPFS. Mime type: ${mimeType}`);
+
     return {
       inlineData: {
         data: buffer.toString('base64'),
@@ -52,11 +40,12 @@ async function urlToGenerativePart(url) {
       },
     };
   } catch (error) {
-    console.error("❌ Error fetching image from URL:", error.message);
-    throw new Error("Could not retrieve or process the image from the provided URL.");
+    console.error("❌ Error fetching image from IPFS:", error.message);
+    throw new Error("Could not retrieve or process the image from the IPFS gateway.");
   }
 }
 
+// The AI Analysis Endpoint
 app.post('/api/analyze-image', async (req, res) => {
   const { imageUrl } = req.body;
   if (!imageUrl) {
@@ -86,6 +75,7 @@ app.post('/api/analyze-image', async (req, res) => {
     const result = await model.generateContent([prompt, ...imageParts]);
     const response = await result.response;
     const text = response.text();
+
     console.log("✅ Received response from Gemini API.");
 
     const jsonString = text.replace(/```json\n|```/g, '').trim();
@@ -93,11 +83,13 @@ app.post('/api/analyze-image', async (req, res) => {
 
     res.json(aiData);
   } catch (error) {
+    // ✅ 3. Log the DETAILED error from the Gemini API
     console.error("❌ AI Analysis Error in /api/analyze-image:", error);
-    res.status(500).json({ error: 'Failed to analyze image. Check backend console.' });
+    res.status(500).json({ error: 'Failed to analyze image. Check the backend console for specific details.' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🤖 AI server running on port ${PORT}`);
+  console.log(`🤖 AI server running on http://localhost:${PORT}`);
 });
+
