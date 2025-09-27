@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom"; // ✅ 1. Import useNavigate
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
+import  axios from "axios";
 
 // --- UI & Utils ---
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Check, X, Image as ImageIcon, FileText, MapPin, TreePine, BarChart3, ArrowLeft, History, Info, ExternalLink, Rocket, FileUp, Award, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Check, X, Image as ImageIcon, FileText, MapPin, TreePine, BarChart3, ArrowLeft, History, Info, ExternalLink, Rocket, FileUp, Award, CheckCircle, AlertTriangle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 
@@ -47,6 +48,10 @@ export default function VerificationPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [creditsToMint, setCreditsToMint] = useState("");
 
+  const [aiResults, setAiResults] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+
   const { data: project, isLoading: isLoadingProject, refetch } = useReadContract({
     address: contractAddress,
     abi: contractAbi,
@@ -80,11 +85,38 @@ export default function VerificationPage() {
     return events.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   }, [project, mrvHistory]);
 
+
+
   useEffect(() => {
     if (project && project[7] !== undefined) {
       setCreditsToMint(project[7].toString());
     }
   }, [project]);
+
+  const handleAIAnalysis = async () => {
+    if (!metadata || !metadata.image) {
+      toast.error("Project metadata or image URL is not available yet.");
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setAiResults(null);
+    const toastId = `ai-analysis-${projectId}`;
+    toast.loading("AI is analyzing project data...", { id: toastId });
+
+    try {
+      const response = await axios.post('http://localhost:3001/api/analyze-image', { 
+        imageUrl: metadata.image // Send the full image URL from the metadata
+      });
+      setAiResults(response.data);
+      toast.success("AI Analysis Complete!", { id: toastId });
+    } catch (error) {
+      console.error("Failed to get AI analysis:", error);
+      toast.error("AI Analysis Failed.", { id: toastId, description: "Please check the console for details." });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   
   const handleApprove = () => {
     const amount = parseInt(creditsToMint, 10);
@@ -137,6 +169,7 @@ export default function VerificationPage() {
   }
   
   const isProcessing = isPending || isConfirming;
+  const analysis = aiResults; 
 
   return (
     <div className="min-h-screen bg-gradient-surface p-4 md:p-8">
@@ -191,31 +224,44 @@ export default function VerificationPage() {
 
             <div className="space-y-2">
               <h3 className="text-lg font-semibold pl-1">AI Verification Assistant</h3>
-              <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><TreePine className="h-6 w-6 text-success" /><div className="flex-1"><h3 className="font-semibold">AI Sapling Count</h3><p className="text-sm text-muted-foreground">Automated tree detection</p></div></div><div className="text-center"><div className="text-3xl font-bold text-success mb-1">{mockAIAnalysis.saplingCount.detected.toLocaleString()}</div><div className="text-sm text-muted-foreground">/ {mockAIAnalysis.saplingCount.estimated.toLocaleString()} Estimated</div><Badge className="mt-2 bg-success/10 text-success">{mockAIAnalysis.saplingCount.confidence}% Confidence</Badge></div></CardContent></Card>
-              <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><BarChart3 className="h-6 w-6 text-accent-strong" /><div className="flex-1"><h3 className="font-semibold">Canopy Health</h3><p className="text-sm text-muted-foreground">Vegetation health analysis</p></div></div><div className="space-y-2"><div className="flex items-center justify-between"><span className="text-2xl font-bold">{mockAIAnalysis.canopyHealth.percentage}%</span><Badge className="bg-success/10 text-success">{mockAIAnalysis.canopyHealth.status}</Badge></div><Progress value={mockAIAnalysis.canopyHealth.percentage} className="h-3"/></div></CardContent></Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <AlertTriangle className="h-5 w-5 text-warning" />Anomalies Detected
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {mockAIAnalysis.anomalies.map((anomaly, index) => (
-                    <div key={index} className="flex items-start justify-between p-3 bg-muted/30 rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm">{anomaly.location}</p>
-                        <p className="text-xs text-muted-foreground">{anomaly.type}</p>
-                      </div>
-                      <Badge variant="outline" className={cn(
-                        anomaly.severity === "Medium" && "border-yellow-500 text-yellow-600",
-                        anomaly.severity === "High" && "border-destructive text-destructive"
-                      )}>
-                        {anomaly.severity}
-                      </Badge>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+
+              {!analysis && !isAnalyzing && (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground mb-4">Run automated analysis on the project's baseline image to get objective insights.</p>
+                    <Button onClick={handleAIAnalysis} disabled={isAnalyzing || isMetadataLoading}>
+                      <Zap className="mr-2 h-4 w-4" />
+                      {isMetadataLoading ? "Loading Image Data..." : "Run AI Analysis"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              {isAnalyzing && (
+                <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" /><p className="text-muted-foreground">AI is analyzing the data... Please wait.</p></CardContent></Card>
+              )}
+              
+              {/* Show results once analysis is complete */}
+              {analysis && (
+                <>
+                  <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><TreePine className="h-6 w-6 text-success" /><div className="flex-1"><h3 className="font-semibold">AI Sapling Count</h3><p className="text-sm text-muted-foreground">Automated tree detection</p></div></div><div className="text-center"><div className="text-3xl font-bold text-success mb-1">{analysis.saplingCount.detected.toLocaleString()}</div><div className="text-sm text-muted-foreground">/ {analysis.saplingCount.estimated.toLocaleString()} Estimated</div><Badge className="mt-2 bg-success/10 text-success">{analysis.saplingCount.confidence}% Confidence</Badge></div></CardContent></Card>
+                  <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><BarChart3 className="h-6 w-6 text-accent-strong" /><div className="flex-1"><h3 className="font-semibold">Canopy Health</h3><p className="text-sm text-muted-foreground">Vegetation health analysis</p></div></div><div className="space-y-2"><div className="flex items-center justify-between"><span className="text-2xl font-bold">{analysis.canopyHealth.percentage}%</span><Badge className="bg-success/10 text-success">{analysis.canopyHealth.status}</Badge></div><Progress value={analysis.canopyHealth.percentage} className="h-3"/></div></CardContent></Card>
+                  <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="h-5 w-5 text-warning" />Anomalies Detected</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      {analysis.anomalies.length > 0 ? (
+                        analysis.anomalies.map((anomaly: any, index: number) => (
+                          <div key={index} className="flex items-start justify-between p-3 bg-muted/30 rounded-lg">
+                            <div><p className="font-medium text-sm">{anomaly.location}</p><p className="text-xs text-muted-foreground">{anomaly.type}</p></div>
+                            <Badge variant="outline" className={cn(anomaly.severity === "Medium" && "border-yellow-500 text-yellow-600", anomaly.severity === "High" && "border-destructive text-destructive")}>{anomaly.severity}</Badge>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center">No significant anomalies detected.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
 
             <Card className="border-primary/50">
