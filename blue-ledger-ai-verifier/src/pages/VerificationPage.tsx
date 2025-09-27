@@ -105,9 +105,14 @@ export default function VerificationPage() {
     toast.loading("AI is analyzing project data...", { id: toastId });
 
     try {
-      const response = await axios.post('http://localhost:3001/api/analyze-image', { 
-        imageUrl: metadata.image // Send the full image URL from the metadata
+      // ✅ FIX: Use the environment variable for the backend URL
+      // Vite automatically provides `import.meta.env` for this.
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+      
+      const response = await axios.post(`${backendUrl}/api/analyze-image`, { 
+        imageUrl: metadata.image 
       });
+
       setAiResults(response.data);
       toast.success("AI Analysis Complete!", { id: toastId });
     } catch (error) {
