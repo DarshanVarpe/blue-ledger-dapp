@@ -149,7 +149,7 @@ export function VerificationModal({ open, onOpenChange, project, onSuccess }: Ve
               </Card>
               
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold pl-1">AI Verification Assistant</h3>
+                <h3 className="text-lg font-semibold pl-1">AI Verification Assistant (Work Under Progress)</h3>
                 <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><TreePine className="h-6 w-6 text-success" /><div className="flex-1"><h3 className="font-semibold">AI Sapling Count</h3><p className="text-sm text-muted-foreground">Automated tree detection</p></div></div><div className="text-center"><div className="text-3xl font-bold text-success mb-1">{mockAIAnalysis.saplingCount.detected.toLocaleString()}</div><div className="text-sm text-muted-foreground">/ {mockAIAnalysis.saplingCount.estimated.toLocaleString()} Estimated</div><Badge className="mt-2 bg-success/10 text-success">{mockAIAnalysis.saplingCount.confidence}% Confidence</Badge></div></CardContent></Card>
                 <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><BarChart3 className="h-6 w-6 text-accent-strong" /><div className="flex-1"><h3 className="font-semibold">Canopy Health</h3><p className="text-sm text-muted-foreground">Vegetation health analysis</p></div></div><div className="space-y-2"><div className="flex items-center justify-between"><span className="text-2xl font-bold">{mockAIAnalysis.canopyHealth.percentage}%</span><Badge className="bg-success/10 text-success">{mockAIAnalysis.canopyHealth.status}</Badge></div><Progress value={mockAIAnalysis.canopyHealth.percentage} className="h-3"/></div></CardContent></Card>
               </div>
