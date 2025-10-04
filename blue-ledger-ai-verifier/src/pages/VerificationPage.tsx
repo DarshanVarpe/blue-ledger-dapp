@@ -228,7 +228,7 @@ export default function VerificationPage() {
             </Card>
 
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold pl-1">AI Verification Assistant</h3>
+              <h3 className="text-lg font-semibold pl-1">AI Verification Assistant - Work under progress</h3>
 
               {!analysis && !isAnalyzing && (
                 <Card>

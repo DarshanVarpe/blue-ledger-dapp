@@ -147,7 +147,7 @@ export function VerificationModal({ open, onOpenChange, project, onSuccess }: Ve
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md border">{metadata?.description}</p>
                 </CardContent>
               </Card>
-              
+               
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold pl-1">AI Verification Assistant - Work Under Progress</h3>
                 <Card><CardContent className="p-4"><div className="flex items-center gap-3 mb-3"><TreePine className="h-6 w-6 text-success" /><div className="flex-1"><h3 className="font-semibold">AI Sapling Count</h3><p className="text-sm text-muted-foreground">Automated tree detection</p></div></div><div className="text-center"><div className="text-3xl font-bold text-success mb-1">{mockAIAnalysis.saplingCount.detected.toLocaleString()}</div><div className="text-sm text-muted-foreground">/ {mockAIAnalysis.saplingCount.estimated.toLocaleString()} Estimated</div><Badge className="mt-2 bg-success/10 text-success">{mockAIAnalysis.saplingCount.confidence}% Confidence</Badge></div></CardContent></Card>
